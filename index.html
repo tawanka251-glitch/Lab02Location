@@ -3,10 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>AR ตามพิกัด · 0214381 Lab 3</title>
+
   <!-- ห้ามแก้ 2 บรรทัดนี้: A-Frame 1.6.0 และ AR.js 3.4.8 (ชุดเดียวกับ Lab 1) -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.8/aframe/build/aframe-ar.js"></script>
+
   <script>
     // ให้วัตถุหันหน้าเข้าหาผู้ใช้เสมอ (อ่านป้ายได้จากทุกทิศ)
     AFRAME.registerComponent('face-me', {
@@ -15,21 +20,45 @@
         if (!cam) return;
         const me = new THREE.Vector3(), target = new THREE.Vector3();
         this.el.object3D.getWorldPosition(me); cam.getWorldPosition(target);
-        target.y = me.y;                       // หมุนเฉพาะแนวนอน ป้ายไม่เอียงขึ้นลง
+        target.y = me.y; // หมุนเฉพาะแนวนอน ป้ายไม่เอียงขึ้นลง
         this.el.object3D.lookAt(target);
       }
     });
   </script>
+
   <style>
-    #hud { position: fixed; top: 10px; left: 10px; right: 10px; z-index: 10;
-           background: rgba(42,27,92,.85); color: #fff; border-radius: 12px;
-           padding: 10px 14px; font: 14px/1.5 system-ui, sans-serif;
-           box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    /* ซ่อนหน้าจอฟ้า 3 จุด (A-Frame Loading Screen) อย่างเด็ดขาด */
+    .a-loader-title, .a-loading-screen, .a-fullscreen .a-loader-title {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+    }
+
+    #hud {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: rgba(42, 27, 92, 0.88);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font: 14px/1.5 system-ui, sans-serif;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
     #hud b { color: #C9B8F0; }
+
     .hud-btn {
       display: inline-block;
       margin-top: 6px;
-      padding: 4px 10px;
+      padding: 6px 12px;
       background: #5b21b6;
       color: #fff;
       border: 1px solid rgba(255,255,255,0.3);
@@ -41,12 +70,27 @@
     .hud-btn:active {
       background: #7c3aed;
     }
+
+    .cam-btn {
+      background: #dc2626 !important;
+      border-color: #f87171 !important;
+      font-weight: bold;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.75; }
+      100% { opacity: 1; }
+    }
   </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
+<body>
   <div id="hud">
     <div id="hud-text">กำลังขอตำแหน่ง GPS… (อนุญาตกล้องและตำแหน่ง)</div>
-    <button class="hud-btn" id="btn-recenter" style="display:none;">📍 ปักหมุด 3 รูปให้อยู่รอบตัวฉัน (ระยะไม่เกิน 5 ม.)</button>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button class="hud-btn" id="btn-recenter" style="display:none;">📍 ปักหมุด 3 รูปให้อยู่รอบตัวฉัน (ระยะไม่เกิน 5 ม.)</button>
+      <button class="hud-btn cam-btn" id="btn-request-cam" style="display:none;">📷 แตะตรงนี้เพื่อเปิดกล้อง (ขอสิทธิ์ Camera)</button>
+    </div>
   </div>
 
   <a-scene loading-screen="enabled: false"
@@ -54,17 +98,14 @@
            arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
            renderer="antialias: true; alpha: true">
 
-    <a-assets timeout="10000">
+    <a-assets timeout="5000">
       <img id="screenshot-a" src="assets/point-a.png">
       <img id="screenshot-b" src="assets/point-b.png">
       <img id="screenshot-c" src="assets/point-c.png">
     </a-assets>
 
-    <!-- กล้องที่รู้ตำแหน่ง GPS ของผู้ใช้ · ขยับทุก 1 เมตรให้อัปเดตตำแหน่งอย่างต่อเนื่อง -->
+    <!-- กล้องที่รู้ตำแหน่ง GPS ของผู้ใช้ · ขยับทุก 1 เมตรให้อัปเดตตำแหน่ง -->
     <a-camera gps-new-camera="gpsMinDistance: 1"></a-camera>
-
-    <!-- หน่วยของขนาดในโหมดนี้คือ "เมตรจริง"
-         กำหนดพิกัดเริ่มต้นให้อยู่ห่างกันไม่เกิน 5 เมตร -->
 
     <!-- ① จุด A: ภาพหน้าจอ Minecraft · ห่างประมาณ 3 เมตร -->
     <a-entity data-name="จุด A" gps-new-entity-place="latitude: 7.808689; longitude: 99.941463">
@@ -84,17 +125,49 @@
   </a-scene>
 
   <script>
-    // โหมดจำลอง: เปิดลิงก์แล้วต่อท้ายด้วย ?sim จะ "ยืน" ห่างจุด A ประมาณ 3.8 เมตร (ไม่เกิน 5 เมตร)
     const SIM = new URLSearchParams(location.search).has('sim');
     const hud = document.getElementById('hud');
     const hudText = document.getElementById('hud-text');
     const btnRecenter = document.getElementById('btn-recenter');
+    const btnRequestCam = document.getElementById('btn-request-cam');
     const scene = document.querySelector('a-scene');
     const cam = document.querySelector('[gps-new-camera]');
     const places = [...document.querySelectorAll('[gps-new-entity-place]')];
     let me = null, accuracy = null;
     let gpsStatus = 'กำลังขอตำแหน่ง GPS… อนุญาตการเข้าถึงตำแหน่งเมื่อเบราว์เซอร์ถาม';
+    let cameraStatus = '';
     let autoAnchored = false;
+
+    // บังคับปลดล็อกวิดีโอเมื่อแตะหน้าจอ (เผื่อติด Autoplay Policy บนมือถือ)
+    function unlockVideo() {
+      const v = document.querySelector('video') || document.getElementById('arjs-video');
+      if (v && v.paused) {
+        v.play().catch(() => {});
+      }
+    }
+    window.addEventListener('click', unlockVideo);
+    window.addEventListener('touchstart', unlockVideo);
+
+    // ปุ่มแตะเพื่อขอเปิดกล้องโดยตรง (ผ่าน User Gesture)
+    btnRequestCam.addEventListener('click', () => {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(() => {
+          location.reload();
+        })
+        .catch(err => {
+          alert('ไม่สามารถเปิดกล้องได้: ' + err.message + '\n\nกรุณาแตะไอคอนแม่กุญแจ 🔒 ที่แถบที่อยู่ด้านบน แล้วเปลี่ยน "กล้อง" ให้เป็น "อนุญาต"');
+        });
+    });
+
+    // ตรวจสอบหลังจาก 2.5 วินาทีว่ากล้องทำงานหรือยัง ถ้ายังไม่ทำงาน ให้แสดงปุ่มสีแดง
+    setTimeout(() => {
+      const v = document.querySelector('video');
+      if (!v || v.videoWidth === 0) {
+        btnRequestCam.style.display = 'inline-block';
+        cameraStatus = '<br><span style="color:#ff8585;">⚠️ กล้องยังไม่เปิด: แตะปุ่มสีแดงด้านล่าง หรืออนุญาต Camera ใน Chrome</span>';
+        if (!me) hudText.innerHTML = `${gpsStatus}${cameraStatus}`;
+      }
+    }, 2500);
 
     // คำนวณระยะทางระหว่างพิกัดเป็นเมตร (Haversine Formula)
     function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -137,29 +210,10 @@
     scene.addEventListener('loaded', () => {
       if (SIM) {
         const a = places[0].getAttribute('gps-new-entity-place');
-        // จำลองให้ยืนห่างจุด A ประมาณ 3.8 เมตร (ไม่เกิน 5 เมตร)
         setTimeout(() => cam.setAttribute('gps-new-camera', {
           simulateLatitude: a.latitude - 0.000035, simulateLongitude: a.longitude
         }), 500);
       }
-    });
-
-    let cameraStatus = '';
-
-    // ตรวจสอบและดักจับข้อผิดพลาดของกล้อง
-    if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'camera' }).then(res => {
-        if (res.state === 'denied') {
-          cameraStatus = '<br><span style="color:#ff8585;">⚠️ ไม่ได้รับอนุญาตใช้กล้อง: กรุณาอนุญาต Camera ใน Chrome</span>';
-        }
-        res.onchange = () => {
-          cameraStatus = res.state === 'denied' ? '<br><span style="color:#ff8585;">⚠️ ไม่ได้รับอนุญาตใช้กล้อง: กรุณาอนุญาต Camera ใน Chrome</span>' : '';
-        };
-      }).catch(() => {});
-    }
-
-    window.addEventListener('camera-error', () => {
-      cameraStatus = '<br><span style="color:#ff8585;">⚠️ กล้องเปิดไม่ได้: กรุณาอนุญาตสิทธิ์กล้อง (Camera) ใน Chrome แล้วรีเฟรช</span>';
     });
 
     cam.addEventListener('gps-camera-update-position', e => {
@@ -197,6 +251,13 @@
     }
 
     setInterval(() => {
+      // ตรวจสอบว่าวิดีโอกล้องส่งภาพมาแล้วหรือยัง
+      const v = document.querySelector('video');
+      if (v && v.videoWidth > 0) {
+        btnRequestCam.style.display = 'none';
+        cameraStatus = '';
+      }
+
       if (!me) {
         hudText.innerHTML = `${gpsStatus}${cameraStatus}`;
         return;
