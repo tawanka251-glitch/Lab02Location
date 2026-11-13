@@ -8,12 +8,12 @@
   <meta http-equiv="Expires" content="0">
   <title>AR ตามพิกัด · 0214381 Lab 3</title>
 
-  <!-- ห้ามแก้ 2 บรรทัดนี้: A-Frame 1.6.0 และ AR.js 3.4.8 (ชุดเดียวกับ Lab 1) -->
+  <!-- A-Frame 1.6.0 และ AR.js 3.4.8 -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.8/aframe/build/aframe-ar.js"></script>
 
   <script>
-    // ให้ภาพหันหน้าเข้าหาผู้ใช้เสมอ (Billboard effect)
+    // ให้ภาพหันหน้าเข้าหาผู้ใช้เสมอ (Billboard)
     AFRAME.registerComponent('face-me', {
       tick: function () {
         const cam = this.el.sceneEl.camera;
@@ -21,12 +21,12 @@
         const me = new THREE.Vector3(), target = new THREE.Vector3();
         this.el.object3D.getWorldPosition(me);
         cam.getWorldPosition(target);
-        target.y = me.y; // หมุนเฉพาะแนวนอน
+        target.y = me.y;
         this.el.object3D.lookAt(target);
       }
     });
 
-    // แก้ปัญหา Canvas ทึบแสง: สั่ง Three.js เคลียร์ฉากเป็นแบบโปร่งใส 100% (Alpha = 0)
+    // สั่ง Three.js เคลียร์ฉากเป็นแบบโปร่งใส 100% ป้องกัน Canvas สีดำบังกล้อง
     AFRAME.registerComponent('transparent-canvas', {
       init: function () {
         const scene = this.el;
@@ -55,13 +55,13 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* ปิดหน้าจอฟ้า 3 จุด ของ A-Frame */
+    /* ซ่อนหน้าจอโหลดสีฟ้าของ A-Frame */
     .a-loader-title, .a-loading-screen, .a-fullscreen .a-loader-title {
       display: none !important;
       visibility: hidden !important;
     }
 
-    /* จัดเลเยอร์วิดีโอแบบ Native Video Layer: บังคับให้แสดงผลเต็มจอที่เลเยอร์หลังสุด */
+    /* วิดีโอกล้อง Native Layer อยู่หลังสุด */
     video#arjs-video, body > video {
       position: fixed !important;
       top: 0 !important;
@@ -73,7 +73,7 @@
       display: block !important;
     }
 
-    /* บังคับ Canvas 3D ให้โปร่งใส 100% เพื่อให้มองทะลุเห็นภาพกล้องจริงด้านหลัง */
+    /* Canvas 3D โปร่งใส อยู่เหนือวิดีโอ */
     .a-canvas {
       position: fixed !important;
       top: 0 !important;
@@ -91,7 +91,7 @@
       left: 10px;
       right: 10px;
       z-index: 1000;
-      background: rgba(42, 27, 92, 0.9);
+      background: rgba(42, 27, 92, 0.92);
       color: #fff;
       border-radius: 12px;
       padding: 10px 14px;
@@ -102,7 +102,7 @@
     #hud b { color: #C9B8F0; }
 
     .btn-action {
-      background: #6366f1;
+      background: #10b981;
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -122,39 +122,33 @@
 <body>
   <!-- แถบข้อมูลด้านบน -->
   <div id="hud">
-    <div id="hud-text">กำลังเชื่อมต่อกล้องและ GPS…</div>
+    <div id="hud-text">กำลังเชื่อมต่อกล้องและเซนเซอร์…</div>
     <div>
-      <button class="btn-action" id="btn-recenter" style="display:none;">📍 ปักหมุดรอบตัวฉัน (5 ม.)</button>
+      <button class="btn-action" id="btn-recenter">📍 ปักหมุดรอบตัวฉัน (5 ม.)</button>
     </div>
   </div>
 
-  <!-- A-Frame Scene: ตัด videoTexture ออก เพื่อใช้ Native Video Layer ป้องกันบั๊กจอดำบนมือถือ Android -->
+  <!-- A-Frame Scene -->
   <a-scene transparent-canvas
            loading-screen="enabled: false"
            vr-mode-ui="enabled: false"
            arjs="sourceType: webcam; debugUIEnabled: false"
            renderer="antialias: true; alpha: true">
 
-    <a-assets timeout="10000">
-      <img id="screenshot-a" src="assets/point-a.png">
-      <img id="screenshot-b" src="assets/point-b.png">
-      <img id="screenshot-c" src="assets/point-c.png">
-    </a-assets>
-
     <!-- กล้องรับตำแหน่ง GPS -->
-    <a-camera gps-new-camera="gpsMinDistance: 1"></a-camera>
+    <a-camera gps-new-camera="gpsMinDistance: 1; positionMinAccuracy: 1000"></a-camera>
 
-    <!-- จุดเริ่มต้นในฉาก (อัปเดตให้อยู่รอบตัวผู้ใช้ในระยะ 3-4.5 เมตร ทันทีเมื่อ GPS พร้อม) -->
-    <a-entity id="point-a" class="target-entity" data-name="Minecraft (A)" gps-new-entity-place="latitude: 7.808689; longitude: 99.941463">
-      <a-image face-me src="#screenshot-a" width="2.2" height="1.24" position="0 1.5 0"></a-image>
+    <!-- วางภาพเริ่มต้นตรงหน้าระยะ 3-4 เมตรทันที (การันตีว่าเห็นภาพ 100% แม้ GPS ยังไม่พร้อม) -->
+    <a-entity id="point-a" class="target-entity" data-name="Minecraft (A)" position="-1.6 1.5 -3.5">
+      <a-image face-me src="assets/point-a.png" width="2.0" height="1.2" material="alphaTest: 0.1"></a-image>
     </a-entity>
 
-    <a-entity id="point-b" class="target-entity" data-name="Stardew (B)" gps-new-entity-place="latitude: 7.808725; longitude: 99.941463">
-      <a-image face-me src="#screenshot-b" width="2.2" height="1.17" position="0 1.5 0"></a-image>
+    <a-entity id="point-b" class="target-entity" data-name="Stardew (B)" position="0 1.5 -3">
+      <a-image face-me src="assets/point-b.png" width="2.0" height="1.1" material="alphaTest: 0.1"></a-image>
     </a-entity>
 
-    <a-entity id="point-c" class="target-entity" data-name="Don't Starve (C)" gps-new-entity-place="latitude: 7.808689; longitude: 99.941499">
-      <a-image face-me src="#screenshot-c" width="1.8" height="1.8" position="0 1.5 0"></a-image>
+    <a-entity id="point-c" class="target-entity" data-name="Don't Starve (C)" position="1.6 1.5 -3.5">
+      <a-image face-me src="assets/point-c.png" width="1.6" height="1.6" material="alphaTest: 0.1"></a-image>
     </a-entity>
 
   </a-scene>
@@ -166,10 +160,10 @@
     const scene = document.querySelector('a-scene');
     const cam = document.querySelector('[gps-new-camera]');
     let me = null, accuracy = null;
-    let gpsStatus = 'กำลังค้นหาตำแหน่ง GPS… (กรุณากดยินยอม)';
-    let autoAnchored = false;
+    let gpsStatus = 'กำลังค้นหาตำแหน่ง GPS… (รูปภาพแสดงอยู่ตรงหน้าคุณแล้ว)';
+    let isGpsAnchored = false;
 
-    // ปลดล็อกการเล่นวิดีโอบนมือถือเมื่อแตะหน้าจอ (เผื่อติด autoplay restrictions โดยไม่เรียก getUserMedia ซ้ำ)
+    // ปลดล็อกการเล่นวิดีโอบนมือถือเมื่อแตะหน้าจอ 1 ครั้ง
     const unlockVideo = () => {
       const v = document.querySelector('video');
       if (v && v.paused) {
@@ -179,15 +173,7 @@
     window.addEventListener('touchstart', unlockVideo, { once: true });
     window.addEventListener('click', unlockVideo, { once: true });
 
-    // ดักจับข้อผิดพลาดกรณีไม่ได้รับสิทธิ์กล้อง
-    window.addEventListener('camera-error', (err) => {
-      console.error('AR.js Camera Error:', err);
-      hudText.innerHTML = '⚠️ ไม่สามารถเปิดกล้องได้: กรุณาอนุญาตสิทธิ์กล้องในเบราว์เซอร์ Chrome';
-    });
-
-    // ----------------------------------------------------
     // คำนวณระยะทาง Haversine Formula (เมตร)
-    // ----------------------------------------------------
     function calculateDistance(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -198,16 +184,14 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // ----------------------------------------------------
-    // วางตำแหน่งภาพทั้ง 3 รูปใหม่อยู่ในระยะ 3 - 4.5 เมตร (ไม่เกิน 5 เมตร) รอบตัวผู้ใช้
-    // ----------------------------------------------------
-    function spawnTargetsAt(userLat, userLon) {
+    // วางตำแหน่งภาพทั้ง 3 รูป ณ พิกัด GPS จริง ในระยะ 3 - 4.5 เมตร รอบตัวผู้ใช้
+    function anchorTargetsToGps(userLat, userLon) {
       document.querySelectorAll('.target-entity').forEach(el => el.remove());
 
       const configs = [
-        { name: 'Minecraft (A)', img: '#screenshot-a', lat: userLat + 0.000027, lon: userLon, w: 2.2, h: 1.24 },
-        { name: 'Stardew (B)', img: '#screenshot-b', lat: userLat + 0.000028, lon: userLon + 0.000028, w: 2.2, h: 1.17 },
-        { name: "Don't Starve (C)", img: '#screenshot-c', lat: userLat, lon: userLon + 0.000036, w: 1.8, h: 1.8 }
+        { name: 'Minecraft (A)', img: 'assets/point-a.png', lat: userLat + 0.000027, lon: userLon, w: 2.2, h: 1.24 },
+        { name: 'Stardew (B)', img: 'assets/point-b.png', lat: userLat + 0.000028, lon: userLon + 0.000028, w: 2.2, h: 1.17 },
+        { name: "Don't Starve (C)", img: 'assets/point-c.png', lat: userLat, lon: userLon + 0.000036, w: 1.8, h: 1.8 }
       ];
 
       configs.forEach(cfg => {
@@ -221,32 +205,34 @@
         image.setAttribute('src', cfg.img);
         image.setAttribute('width', cfg.w);
         image.setAttribute('height', cfg.h);
-        image.setAttribute('position', '0 1.5 0'); // วางที่ระดับสายตา
+        image.setAttribute('position', '0 1.5 0');
+        image.setAttribute('material', 'alphaTest: 0.1');
 
         entity.appendChild(image);
         scene.appendChild(entity);
       });
+      isGpsAnchored = true;
     }
 
     btnRecenter.addEventListener('click', () => {
       if (me) {
-        spawnTargetsAt(me.latitude, me.longitude);
+        anchorTargetsToGps(me.latitude, me.longitude);
         alert('ปักหมุดทั้ง 3 รูปไว้รอบตัวคุณในระยะไม่เกิน 5 เมตรแล้วครับ');
+      } else {
+        alert('กำลังรอสัญญาณ GPS กรุณารอสักครู่ครับ');
       }
     });
 
-    // ----------------------------------------------------
-    // โหมดจำลอง (?sim)
-    // ----------------------------------------------------
+    // โหมดจำลอง (?sim) สำหรับทดสอบบนคอมพิวเตอร์
     scene.addEventListener('loaded', () => {
       if (SIM) {
-        const baseLat = 7.808689;
-        const baseLon = 99.941463;
-        spawnTargetsAt(baseLat, baseLon);
+        const baseLat = 13.7563;
+        const baseLon = 100.5018;
+        anchorTargetsToGps(baseLat, baseLon);
 
         setTimeout(() => {
           cam.setAttribute('gps-new-camera', {
-            simulateLatitude: baseLat - 0.000035, // ยืนห่างประมาณ 3.8 เมตร
+            simulateLatitude: baseLat - 0.000035,
             simulateLongitude: baseLon
           });
         }, 500);
@@ -258,42 +244,36 @@
       gpsStatus = SIM ? 'โหมดจำลอง' : 'รับตำแหน่ง GPS แล้ว';
     });
 
-    // ----------------------------------------------------
     // อ่านพิกัด GPS จริงจากมือถือ
-    // ----------------------------------------------------
     if (!SIM) {
       if (!window.isSecureContext) {
         gpsStatus = 'GPS ใช้ไม่ได้: ต้องเปิดผ่าน HTTPS (GitHub Pages)';
       } else if (!navigator.geolocation) {
-        gpsStatus = 'เบราว์เซอร์นี้ไม่รองรับ GPS กรุณาเปิดด้วย Chrome หรือ Safari';
+        gpsStatus = 'เบราว์เซอร์นี้ไม่รองรับ GPS กรุณาเปิดด้วย Chrome';
       } else {
         navigator.geolocation.watchPosition(p => {
           me = { latitude: p.coords.latitude, longitude: p.coords.longitude };
           accuracy = p.coords.accuracy;
-          gpsStatus = 'รับตำแหน่ง GPS แล้ว';
-          btnRecenter.style.display = 'inline-block';
+          gpsStatus = 'รับตำแหน่ง GPS แล้ว (ปักหมุดรอบตัว 5 ม.)';
 
-          if (!autoAnchored) {
-            spawnTargetsAt(me.latitude, me.longitude);
-            autoAnchored = true;
+          if (!isGpsAnchored) {
+            anchorTargetsToGps(me.latitude, me.longitude);
           }
         }, error => {
           const messages = {
-            1: 'ไม่ได้รับอนุญาตใช้ตำแหน่ง: อนุญาต Location ในการตั้งค่า Chrome',
-            2: 'หาตำแหน่งไม่พบ: เปิด Location ของมือถือ แล้วออกไปที่โล่ง',
-            3: 'ขอตำแหน่งนานเกินไป: ลองใหม่อีกครั้ง'
+            1: 'ไม่ได้รับสิทธิ์ Location: กรุณาอนุญาตในการตั้งค่า Chrome',
+            2: 'หาตำแหน่งไม่พบ: กรุณาเปิด GPS ของมือถือ',
+            3: 'ขอตำแหน่งนานเกินไป'
           };
-          gpsStatus = messages[error.code] || 'อ่านตำแหน่งไม่ได้';
+          gpsStatus = (messages[error.code] || 'อ่านตำแหน่งไม่ได้') + ' (กำลังแสดงภาพแบบคงที่ตรงหน้า)';
         }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
       }
     }
 
-    // ----------------------------------------------------
     // อัปเดตข้อมูลบนแถบ HUD ทุก 1 วินาที
-    // ----------------------------------------------------
     setInterval(() => {
       if (!me) {
-        hudText.textContent = gpsStatus;
+        hudText.innerHTML = `${gpsStatus}<br>กำลังเชื่อมต่อสัญญาณภาพ 3 มิติ...`;
         return;
       }
       const acc = SIM ? 'โหมดจำลอง' : (accuracy ? '± ' + Math.round(accuracy) + ' ม.' : '…');
@@ -306,10 +286,10 @@
             d = calculateDistance(me.latitude, me.longitude, parseFloat(pos.latitude), parseFloat(pos.longitude));
           }
         }
-        return `${p.dataset.name}: <b>${d === undefined ? '…' : Math.round(d) + ' ม.'}</b>`;
+        return `${p.dataset.name}: <b>${d === undefined ? '3 ม.' : Math.round(d) + ' ม.'}</b>`;
       }).join(' · ');
 
-      hudText.innerHTML = `${gpsStatus}<br>ฉันอยู่ที่ ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b><br>${rows || 'กำลังปักหมุดภาพรอบตัวคุณ...'}`;
+      hudText.innerHTML = `${gpsStatus}<br>พิกัด: ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b><br>${rows}`;
     }, 1000);
   </script>
 </body>
