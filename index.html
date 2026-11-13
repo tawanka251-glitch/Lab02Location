@@ -2,667 +2,56 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>PokéAR Go · สำรวจหาภาพปริศนาทั้ง 3</title>
-  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AR ตามพิกัด · 0214381 Lab 3</title>
   <!-- ห้ามแก้ 2 บรรทัดนี้: A-Frame 1.6.0 และ AR.js 3.4.8 (ชุดเดียวกับ Lab 1) -->
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.8/aframe/build/aframe-ar.js"></script>
-
   <script>
-    // ให้ภาพและป้ายข้อความหันหน้าเข้าหาผู้ใช้เสมอ
+    // ให้วัตถุหันหน้าเข้าหาผู้ใช้เสมอ (อ่านป้ายได้จากทุกทิศ)
     AFRAME.registerComponent('face-me', {
       tick: function () {
         const cam = this.el.sceneEl.camera;
         if (!cam) return;
         const me = new THREE.Vector3(), target = new THREE.Vector3();
-        this.el.object3D.getWorldPosition(me); 
-        cam.getWorldPosition(target);
-        target.y = me.y; // หมุนเฉพาะแกนแนวนอน ไม่เอียงขึ้นลง
+        this.el.object3D.getWorldPosition(me); cam.getWorldPosition(target);
+        target.y = me.y;                       // หมุนเฉพาะแนวนอน ป้ายไม่เอียงขึ้นลง
         this.el.object3D.lookAt(target);
       }
     });
   </script>
-
   <style>
-    :root {
-      --poke-red: #ee1515;
-      --poke-dark-red: #c00d0d;
-      --poke-blue: #2a75bb;
-      --poke-yellow: #ffcb05;
-      --poke-dark: #1e222d;
-      --poke-light: #f7f9fc;
-      --card-bg: rgba(26, 32, 44, 0.88);
-    }
-
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #fff;
-      touch-action: manipulation;
-    }
-
-    /* UI Overlay Layer */
-    #ui-container {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 12px;
-    }
-
-    .interactive {
-      pointer-events: auto;
-    }
-
-    /* Top Navigation & Status Bar */
-    .top-bar {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .header-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(8px);
-      border-radius: 16px;
-      padding: 10px 14px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.15);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .brand-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 800;
-      font-size: 16px;
-      letter-spacing: 0.5px;
-    }
-
-    .pokeball-icon {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: linear-gradient(to bottom, #ee1515 50%, #ffffff 50%);
-      border: 2px solid #222;
-      position: relative;
+    #hud { position: fixed; top: 10px; left: 10px; right: 10px; z-index: 10;
+           background: rgba(42,27,92,.85); color: #fff; border-radius: 12px;
+           padding: 10px 14px; font: 14px/1.5 system-ui, sans-serif;
+           box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    #hud b { color: #C9B8F0; }
+    .hud-btn {
       display: inline-block;
-      box-shadow: 0 0 6px rgba(238,21,21,0.5);
-    }
-    .pokeball-icon::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 7px;
-      height: 7px;
-      background: #fff;
-      border: 2px solid #222;
-      border-radius: 50%;
-    }
-
-    .counter-badge {
-      background: linear-gradient(135deg, #ffcb05, #e5a800);
-      color: #222;
-      font-weight: 800;
-      font-size: 13px;
-      padding: 5px 12px;
-      border-radius: 20px;
-      box-shadow: 0 2px 8px rgba(255,203,5,0.4);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .actions-bar {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .icon-btn {
-      background: var(--card-bg);
-      border: 1px solid rgba(255,255,255,0.2);
+      margin-top: 6px;
+      padding: 4px 10px;
+      background: #5b21b6;
       color: #fff;
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      cursor: pointer;
-      backdrop-filter: blur(6px);
-      transition: transform 0.15s, background 0.2s;
-    }
-    .icon-btn:active {
-      transform: scale(0.92);
-      background: rgba(255,255,255,0.25);
-    }
-
-    /* GPS Info Pill */
-    .status-pill {
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(6px);
-      border-radius: 20px;
-      padding: 6px 12px;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border: 1px solid rgba(255,255,255,0.1);
-      color: #cbd5e1;
-    }
-    .status-pill b {
-      color: #38bdf8;
-    }
-
-    .btn-spawn-here {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
-      border: none;
-      border-radius: 14px;
-      padding: 5px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(16,185,129,0.3);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .btn-spawn-here:active {
-      transform: scale(0.95);
-    }
-
-    /* Target Direction Compass Needle */
-    #compass-guide {
-      align-self: center;
-      background: rgba(15, 23, 42, 0.82);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 24px;
-      padding: 8px 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      font-weight: 600;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      transition: all 0.3s;
-    }
-    .arrow-icon {
-      font-size: 18px;
-      display: inline-block;
-      color: #facc15;
-      transition: transform 0.2s ease-out;
-    }
-
-    /* Bottom Nearby Tracker (Pokémon GO Style Radar) */
-    .bottom-bar {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .nearby-panel {
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      border-radius: 20px;
-      padding: 12px;
-      border: 1px solid rgba(255,255,255,0.15);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    }
-
-    .nearby-header {
-      font-size: 12px;
-      font-weight: 700;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .targets-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .target-card {
-      background: rgba(255,255,255,0.06);
-      border-radius: 14px;
-      padding: 8px 6px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,0.08);
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s;
-    }
-    .target-card:active {
-      transform: scale(0.96);
-      background: rgba(255,255,255,0.12);
-    }
-    .target-card.selected {
-      border-color: #38bdf8;
-      box-shadow: 0 0 12px rgba(56,189,248,0.4);
-    }
-    .target-card.in-range {
-      border-color: #4ade80;
-      animation: pulse-border 1.5s infinite;
-    }
-    .target-card.caught {
-      opacity: 0.85;
-      border-color: #ffcb05;
-    }
-
-    @keyframes pulse-border {
-      0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.7); }
-      70% { box-shadow: 0 0 0 8px rgba(74,222,128,0); }
-      100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
-    }
-
-    .target-thumb-wrap {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: #0f172a;
-      border: 2px solid rgba(255,255,255,0.2);
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 6px;
-      position: relative;
-    }
-    .target-thumb {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: filter 0.3s;
-    }
-    .target-thumb.silhouette {
-      filter: brightness(0) invert(1) opacity(0.3);
-    }
-    .badge-caught {
-      position: absolute;
-      bottom: -2px;
-      right: -2px;
-      background: #ffcb05;
-      color: #111;
-      font-size: 10px;
-      border-radius: 50%;
-      width: 16px;
-      height: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      border: 1px solid #fff;
-    }
-
-    .target-name {
-      font-size: 11px;
-      font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      width: 100%;
-    }
-
-    .target-distance {
-      font-size: 11px;
-      font-weight: 800;
-      color: #facc15;
-      margin-top: 2px;
-    }
-
-    .target-status-badge {
-      font-size: 9px;
-      font-weight: 700;
-      padding: 2px 6px;
+      border: 1px solid rgba(255,255,255,0.3);
       border-radius: 8px;
-      margin-top: 4px;
-      text-transform: uppercase;
-    }
-    .badge-far { background: rgba(255,255,255,0.1); color: #94a3b8; }
-    .badge-near { background: rgba(234,179,8,0.25); color: #facc15; }
-    .badge-ready { background: rgba(34,197,94,0.3); color: #4ade80; font-weight: 900; }
-    .badge-done { background: rgba(56,189,248,0.25); color: #38bdf8; }
-
-    /* Catch Prompt Banner (when in range) */
-    #catch-banner {
-      display: none;
-      background: linear-gradient(135deg, #ee1515, #b91c1c);
-      border-radius: 18px;
-      padding: 12px 16px;
-      color: #fff;
-      box-shadow: 0 6px 25px rgba(238,21,21,0.6);
-      align-items: center;
-      justify-content: space-between;
-      border: 2px solid #ffcb05;
-      animation: bounce 1.8s infinite;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-    .catch-banner-btn {
-      background: #ffcb05;
-      color: #1e222d;
-      font-weight: 900;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+      text-decoration: none;
     }
-
-    /* Modal Overlay (Catch / Pokédex / Help / Victory) */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.75);
-      backdrop-filter: blur(8px);
-      z-index: 200;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .modal-card {
-      background: #1e293b;
-      border-radius: 24px;
-      width: 100%;
-      max-width: 380px;
-      border: 2px solid rgba(255,255,255,0.15);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-      overflow: hidden;
-      animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    @keyframes popIn {
-      from { transform: scale(0.85); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-    .modal-header {
-      background: linear-gradient(135deg, #ee1515, #991b1b);
-      padding: 14px 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #fff;
-      font-weight: 800;
-      font-size: 16px;
-    }
-    .modal-body {
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-    .modal-image {
-      width: 100%;
-      max-height: 200px;
-      object-fit: contain;
-      border-radius: 12px;
-      background: #0f172a;
-      border: 1px solid rgba(255,255,255,0.1);
-      margin-bottom: 12px;
-    }
-    .modal-desc {
-      font-size: 13px;
-      color: #94a3b8;
-      line-height: 1.5;
-      margin-bottom: 16px;
-    }
-    .btn-catch-action {
-      background: linear-gradient(135deg, #ffcb05, #e5a800);
-      color: #111;
-      font-weight: 900;
-      font-size: 16px;
-      border: none;
-      border-radius: 30px;
-      padding: 12px 28px;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(255,203,5,0.4);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: transform 0.15s;
-    }
-    .btn-catch-action:active {
-      transform: scale(0.95);
-    }
-
-    /* Simulation Walking D-Pad */
-    #sim-pad {
-      position: fixed;
-      bottom: 180px;
-      left: 14px;
-      z-index: 120;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(6px);
-      padding: 8px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.15);
-      pointer-events: auto;
-    }
-    .pad-row {
-      display: flex;
-      gap: 4px;
-    }
-    .pad-btn {
-      width: 40px;
-      height: 40px;
-      background: rgba(255,255,255,0.15);
-      border: none;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-    .pad-btn:active {
-      background: #38bdf8;
-      color: #000;
-    }
-
-    /* Confetti Canvas */
-    #confetti-canvas {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 300;
+    .hud-btn:active {
+      background: #7c3aed;
     }
   </style>
 </head>
-<body>
-
-  <!-- Canvas สำหรับเอฟเฟกต์พลุฉลองเมื่อเก็บครบ -->
-  <canvas id="confetti-canvas"></canvas>
-
-  <!-- UI Overlay หน้าเกม Pokémon GO -->
-  <div id="ui-container">
-    
-    <!-- ส่วนบน: สรุปภารกิจ, สถานะ GPS และปุ่มควบคุม -->
-    <div class="top-bar">
-      <div class="header-card interactive">
-        <div class="brand-title">
-          <span class="pokeball-icon"></span>
-          <span>PokéAR GO</span>
-        </div>
-        <div class="actions-bar">
-          <div class="counter-badge" id="caught-counter" title="จำนวนภาพที่เก็บได้">
-            <span>🔴</span>
-            <span id="counter-text">0 / 3</span>
-          </div>
-          <button class="icon-btn" id="btn-sound" title="เปิด/ปิดเสียง">🔊</button>
-          <button class="icon-btn" id="btn-pokedex" title="สมุดสะสมภาพ">🎒</button>
-          <button class="icon-btn" id="btn-info" title="คำแนะนำ">ℹ️</button>
-        </div>
-      </div>
-
-      <div class="status-pill interactive">
-        <span id="gps-status-text">กำลังค้นหาสัญญาณ GPS…</span>
-        <button class="btn-spawn-here" id="btn-spawn-nearby" title="ตั้งเป้าหมาย 3 ภาพรอบตัวคุณในระยะ 15 เมตร">
-          📍 เซ็ตจุดรอบตัวฉัน
-        </button>
-      </div>
-    </div>
-
-    <!-- เข็มทิศนำทางชี้ไปยังเป้าหมายที่เลือก -->
-    <div id="compass-guide" class="interactive">
-      <span class="arrow-icon" id="target-arrow">⬆️</span>
-      <span id="compass-text">กำลังเลือกเป้าหมาย...</span>
-    </div>
-
-    <!-- ส่วนล่าง: ป้ายเตือนเมื่ออยู่ในระยะ & แถบ Nearby Radar -->
-    <div class="bottom-bar">
-      <!-- ป้ายเตือนเมื่อเดินเข้าใกล้จุดใดจุดหนึ่งในระยะ 10 เมตร -->
-      <div id="catch-banner" class="interactive">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 22px;">⚡</span>
-          <div>
-            <div style="font-weight: 800; font-size: 14px;" id="catch-banner-title">พบภาพปริศนาแล้ว!</div>
-            <div style="font-size: 12px; opacity: 0.9;" id="catch-banner-sub">อยู่ในระยะจับภาพแล้ว</div>
-          </div>
-        </div>
-        <button class="catch-banner-btn" id="btn-open-catch">จับภาพ! 🎯</button>
-      </div>
-
-      <!-- เรดาร์ Pokémon GO แสดงทั้ง 3 จุด -->
-      <div class="nearby-panel interactive">
-        <div class="nearby-header">
-          <span>🔍 ภาพปริศนาใกล้เคียง (Nearby)</span>
-          <span style="color: #64748b; font-size: 11px;">แตะการ์ดเพื่อเลือกนำทาง</span>
-        </div>
-        <div class="targets-grid" id="targets-grid">
-          <!-- การ์ดทั้ง 3 จุดจะถูกเรนเดอร์โดย JavaScript -->
-        </div>
-      </div>
-    </div>
+<body style="margin: 0; overflow: hidden;">
+  <div id="hud">
+    <div id="hud-text">กำลังขอตำแหน่ง GPS… (อนุญาตกล้องและตำแหน่ง)</div>
+    <button class="hud-btn" id="btn-recenter" style="display:none;">📍 ปักหมุด 3 รูปให้อยู่รอบตัวฉัน (ระยะไม่เกิน 5 ม.)</button>
   </div>
 
-  <!-- ปุ่มจำลองการเดินบนคอมพิวเตอร์ (แสดงเมื่อมี ?sim) -->
-  <div id="sim-pad">
-    <button class="pad-btn" id="sim-up">⬆️</button>
-    <div class="pad-row">
-      <button class="pad-btn" id="sim-left">⬅️</button>
-      <button class="pad-btn" id="sim-down">⬇️</button>
-      <button class="pad-btn" id="sim-right">➡️</button>
-    </div>
-  </div>
-
-  <!-- Modal สำหรับจับภาพ (Encounter) -->
-  <div class="modal-overlay interactive" id="modal-catch">
-    <div class="modal-card">
-      <div class="modal-header">
-        <span id="modal-catch-title">🌟 พบภาพปริศนา!</span>
-        <button class="icon-btn" style="width: 28px; height: 28px; background: transparent; border: none;" onclick="closeModal('modal-catch')">✕</button>
-      </div>
-      <div class="modal-body">
-        <img id="modal-catch-img" class="modal-image" src="" alt="Captured Image">
-        <h3 id="modal-catch-name" style="margin: 4px 0 8px 0; font-size: 16px;"></h3>
-        <p id="modal-catch-desc" class="modal-desc"></p>
-        <button class="btn-catch-action" id="btn-confirm-catch">
-          <span class="pokeball-icon"></span>
-          <span>เก็บภาพเข้าสมุดสะสม!</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal สมุดสะสม (Pokédex / Bag) -->
-  <div class="modal-overlay interactive" id="modal-pokedex">
-    <div class="modal-card">
-      <div class="modal-header">
-        <span>🎒 สมุดสะสมภาพ (3 ภาพ)</span>
-        <button class="icon-btn" style="width: 28px; height: 28px; background: transparent; border: none;" onclick="closeModal('modal-pokedex')">✕</button>
-      </div>
-      <div class="modal-body" id="pokedex-list" style="max-height: 60vh; overflow-y: auto; width: 100%; gap: 12px;">
-        <!-- รายการภาพจะสร้างด้วย JS -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal คำแนะนำการเล่น -->
-  <div class="modal-overlay interactive" id="modal-info">
-    <div class="modal-card">
-      <div class="modal-header">
-        <span>ℹ️ กติกาการเล่นสไตล์ Pokémon GO</span>
-        <button class="icon-btn" style="width: 28px; height: 28px; background: transparent; border: none;" onclick="closeModal('modal-info')">✕</button>
-      </div>
-      <div class="modal-body" style="text-align: left; font-size: 13px; line-height: 1.6; color: #cbd5e1;">
-        <p>🎮 <b>วิธีเล่นบนมือถือ:</b></p>
-        <ol style="padding-left: 20px; margin: 0 0 12px 0;">
-          <li>เดินถือมือถือมองไปรอบ ๆ สังเกตระยะห่างในแถบ Nearby ด้านล่าง</li>
-          <li>เมื่อเดินเข้าไปใกล้จุดใดจุดหนึ่งในระยะ <b>10 เมตร</b> จะปรากฏปุ่ม "จับภาพ! 🎯" หรือสามารถแตะที่รูป 3D ในกล้อง AR ได้เลย</li>
-          <li>แตะเพื่อจับและบันทึกภาพลงสมุดสะสม ทำภารกิจให้ครบทั้ง 3 ภาพ!</li>
-        </ol>
-        <p>📍 <b>ปุ่มเซ็ตจุดรอบตัวฉัน:</b><br>
-        หากต้องการเล่นทันทีตรงจุดที่คุณยืนอยู่ ให้กดปุ่ม <b>"📍 เซ็ตจุดรอบตัวฉัน"</b> ด้านบน ระบบจะวางทั้ง 3 ภาพไว้รอบตัวในระยะ 15 เมตรอัตโนมัติ!</p>
-        <p>💻 <b>โหมดจำลอง (?sim):</b><br>
-        สามารถเปิดลิงก์พร้อม <code>?sim</code> บนคอมพิวเตอร์ เพื่อกดปุ่มลูกศรเดินจำลองในห้องได้</p>
-        <button class="catch-banner-btn" style="width: 100%; margin-top: 10px;" onclick="closeModal('modal-info')">เข้าใจแล้ว เริ่มเล่นเลย!</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal ชัยชนะเมื่อครบ 3 ภาพ -->
-  <div class="modal-overlay interactive" id="modal-victory">
-    <div class="modal-card" style="border-color: #ffcb05;">
-      <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b, #d97706); justify-content: center;">
-        <span style="font-size: 18px;">🏆 ภารกิจสำเร็จครบทั้ง 3 ภาพ!</span>
-      </div>
-      <div class="modal-body">
-        <div style="font-size: 48px; margin: 10px 0;">🎉</div>
-        <h2 style="margin: 0 0 8px 0; color: #ffcb05;">สุดยอด Pokémon Master!</h2>
-        <p class="modal-desc" style="color: #e2e8f0;">
-          คุณเดินค้นหาและเก็บภาพปริศนาครบทั้ง 3 ภาพเรียบร้อยแล้ว
-        </p>
-        <button class="btn-catch-action" onclick="resetGame()" style="margin-top: 10px;">
-          <span>🔄 เริ่มเล่นใหม่อีกครั้ง</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- A-Frame 3D Scene สำหรับ Location-based AR -->
   <a-scene vr-mode-ui="enabled: false"
            arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
-           renderer="antialias: true; alpha: true"
-           cursor="rayOrigin: mouse"
-           raycaster="objects: .clickable">
+           renderer="antialias: true; alpha: true">
 
     <a-assets>
       <img id="screenshot-a" src="assets/point-a.png">
@@ -670,614 +59,144 @@
       <img id="screenshot-c" src="assets/point-c.png">
     </a-assets>
 
-    <!-- กล้องที่รับตำแหน่ง GPS ของผู้ใช้ -->
-    <a-camera gps-new-camera="gpsMinDistance: 3"></a-camera>
+    <!-- กล้องที่รู้ตำแหน่ง GPS ของผู้ใช้ · ขยับทุก 1 เมตรให้อัปเดตตำแหน่งอย่างต่อเนื่อง -->
+    <a-camera gps-new-camera="gpsMinDistance: 1"></a-camera>
 
-    <!-- ① จุด A: Minecraft (พิกัดเริ่มต้นจากแล็บ) -->
-    <a-entity id="ar-point-a" data-id="point-a" gps-new-entity-place="latitude: 7.808689; longitude: 99.941463">
-      <a-image face-me class="clickable" src="#screenshot-a" width="3" height="1.69" position="0 1.5 0"></a-image>
-      <a-text face-me value="จุด A: Minecraft" align="center" position="0 2.8 0" scale="2.5 2.5 2.5" color="#FFCB05"></a-text>
+    <!-- หน่วยของขนาดในโหมดนี้คือ "เมตรจริง"
+         กำหนดพิกัดเริ่มต้นให้อยู่ห่างกันไม่เกิน 5 เมตร -->
+
+    <!-- ① จุด A: ภาพหน้าจอ Minecraft · ห่างประมาณ 3 เมตร -->
+    <a-entity data-name="จุด A" gps-new-entity-place="latitude: 7.808689; longitude: 99.941463">
+      <a-image face-me src="#screenshot-a" width="2" height="1.13" position="0 1.5 0"></a-image>
     </a-entity>
 
-    <!-- ② จุด B: Stardew Valley (พิกัดเริ่มต้นจากแล็บ) -->
-    <a-entity id="ar-point-b" data-id="point-b" gps-new-entity-place="latitude: 7.808734; longitude: 99.941463">
-      <a-image face-me class="clickable" src="#screenshot-b" width="3" height="1.6" position="0 1.5 0"></a-image>
-      <a-text face-me value="จุด B: Stardew Valley" align="center" position="0 2.8 0" scale="2.5 2.5 2.5" color="#FFCB05"></a-text>
+    <!-- ② จุด B: ภาพหน้าจอ Stardew Valley · ห่างประมาณ 4-5 เมตร -->
+    <a-entity data-name="จุด B" gps-new-entity-place="latitude: 7.808725; longitude: 99.941463">
+      <a-image face-me src="#screenshot-b" width="2" height="1.07" position="0 1.5 0"></a-image>
     </a-entity>
 
-    <!-- ③ จุด C: Don't Starve (พิกัดเริ่มต้นจากแล็บ) -->
-    <a-entity id="ar-point-c" data-id="point-c" gps-new-entity-place="latitude: 7.808689; longitude: 99.941508">
-      <a-image face-me class="clickable" src="#screenshot-c" width="2" height="2" position="0 1.5 0"></a-image>
-      <a-text face-me value="จุด C: Don't Starve" align="center" position="0 2.8 0" scale="2.5 2.5 2.5" color="#FFCB05"></a-text>
+    <!-- ③ จุด C: ภาพหน้าจอ Don't Starve · ห่างประมาณ 4 เมตร -->
+    <a-entity data-name="จุด C" gps-new-entity-place="latitude: 7.808689; longitude: 99.941499">
+      <a-image face-me src="#screenshot-c" width="1.5" height="1.5" position="0 1.5 0"></a-image>
     </a-entity>
 
   </a-scene>
 
-  <!-- Game Logic & Pokémon GO mechanics -->
   <script>
-    // ----------------------------------------------------
-    // ข้อมูลของภาพทั้ง 3 จุด
-    // ----------------------------------------------------
-    const TARGETS = [
-      {
-        id: 'point-a',
-        elementId: 'ar-point-a',
-        name: 'จุด A · Minecraft',
-        desc: 'โลกบล็อกแห่งจินตนาการและการผจญภัย สร้างสรรค์สิ่งก่อสร้างไร้ขีดจำกัด',
-        img: 'assets/point-a.png',
-        lat: 7.808689,
-        lon: 99.941463,
-        caught: false,
-        distance: null
-      },
-      {
-        id: 'point-b',
-        elementId: 'ar-point-b',
-        name: 'จุด B · Stardew Valley',
-        desc: 'ฟาร์มแสนอบอุ่นในหุบเขา ปลูกผัก เลี้ยงสัตว์ และใช้ชีวิตสโลว์ไลฟ์',
-        img: 'assets/point-b.png',
-        lat: 7.808734,
-        lon: 99.941463,
-        caught: false,
-        distance: null
-      },
-      {
-        id: 'point-c',
-        elementId: 'ar-point-c',
-        name: 'จุด C · Don\'t Starve',
-        desc: 'การเอาชีวิตรอดในโลกมืดอันลึกลับ ระวังความหิวและความมืด!',
-        img: 'assets/point-c.png',
-        lat: 7.808689,
-        lon: 99.941508,
-        caught: false,
-        distance: null
-      }
-    ];
-
-    const CATCH_RADIUS_METERS = 10; // ระยะที่สามารถจับภาพได้ (10 เมตร)
+    // โหมดจำลอง: เปิดลิงก์แล้วต่อท้ายด้วย ?sim จะ "ยืน" ห่างจุด A ประมาณ 3.8 เมตร (ไม่เกิน 5 เมตร)
     const SIM = new URLSearchParams(location.search).has('sim');
+    const hud = document.getElementById('hud');
+    const hudText = document.getElementById('hud-text');
+    const btnRecenter = document.getElementById('btn-recenter');
+    const scene = document.querySelector('a-scene');
+    const cam = document.querySelector('[gps-new-camera]');
+    const places = [...document.querySelectorAll('[gps-new-entity-place]')];
+    let me = null, accuracy = null;
+    let gpsStatus = 'กำลังขอตำแหน่ง GPS… อนุญาตการเข้าถึงตำแหน่งเมื่อเบราว์เซอร์ถาม';
+    let autoAnchored = false;
 
-    let me = null;
-    let accuracy = null;
-    let selectedTargetId = 'point-a';
-    let soundEnabled = true;
-    let audioCtx = null;
-    let activeInRangeTarget = null;
-    let compassHeading = 0;
-
-    // ----------------------------------------------------
-    // ระบบเสียง Web Audio API (Retro 8-bit sound effects)
-    // ----------------------------------------------------
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    }
-
-    function playTone(freq, duration, type = 'sine', startTime = 0) {
-      if (!soundEnabled) return;
-      initAudio();
-      if (!audioCtx) return;
-      try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + startTime);
-        gain.gain.setValueAtTime(0.12, audioCtx.currentTime + startTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(audioCtx.currentTime + startTime);
-        osc.stop(audioCtx.currentTime + startTime + duration);
-      } catch (e) {
-        console.warn('Audio error:', e);
-      }
-    }
-
-    function playEncounterSound() {
-      // เสียงเวลาเดินมาเจอมอนสเตอร์
-      playTone(440, 0.1, 'square', 0);
-      playTone(554.37, 0.1, 'square', 0.1);
-      playTone(659.25, 0.15, 'square', 0.2);
-      playTone(880, 0.25, 'triangle', 0.35);
-    }
-
-    function playCatchSound() {
-      // เสียงจับมอนสเตอร์สำเร็จ (Pokéball Gotcha!)
-      playTone(523.25, 0.1, 'triangle', 0);
-      playTone(659.25, 0.1, 'triangle', 0.12);
-      playTone(783.99, 0.1, 'triangle', 0.24);
-      playTone(1046.50, 0.35, 'square', 0.36);
-    }
-
-    function playVictoryFanfare() {
-      // เสียงฉลองชัยชนะเมื่อครบ 3 ภาพ
-      const notes = [523, 523, 523, 659, 783, 1046];
-      const times = [0, 0.15, 0.3, 0.45, 0.6, 0.8];
-      notes.forEach((n, i) => playTone(n, 0.25, 'triangle', times[i]));
-    }
-
-    // ----------------------------------------------------
-    // คำนวณระยะทางและมุมองศาด้วย Haversine Formula
-    // ----------------------------------------------------
-    function getDistanceMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371e3; // รัศมีโลกเป็นเมตร
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
-      const Δφ = (lat2 - lat1) * Math.PI / 180;
-      const Δλ = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
-    }
-
-    function getBearing(lat1, lon1, lat2, lon2) {
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
-      const Δλ = (lon2 - lon1) * Math.PI / 180;
-      const y = Math.sin(Δλ) * Math.cos(φ2);
-      const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-      const θ = Math.atan2(y, x);
-      return (θ * 180 / Math.PI + 360) % 360;
-    }
-
-    // คำนวณหาพิกัดใหม่จากจุดยืนเดิมในระยะทางและทิศทางที่กำหนด
-    function computeOffsetCoordinate(lat, lon, distanceMeters, bearingDeg) {
+    // คำนวณระยะทางระหว่างพิกัดเป็นเมตร (Haversine Formula)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
-      const δ = distanceMeters / R;
-      const θ = bearingDeg * Math.PI / 180;
-      const φ1 = lat * Math.PI / 180;
-      const λ1 = lon * Math.PI / 180;
-
-      const φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
-      const λ2 = λ1 + Math.atan2(Math.sin(θ) * Math.sin(δ) * Math.cos(φ1), Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2));
-
-      return {
-        lat: φ2 * 180 / Math.PI,
-        lon: λ2 * 180 / Math.PI
-      };
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // ----------------------------------------------------
-    // อัปเดตตำแหน่งและคำนวณระยะห่าง
-    // ----------------------------------------------------
-    function updateGameLoop() {
-      if (!me) return;
+    // วางทั้ง 3 รูปให้อยู่รอบตำแหน่งผู้ใช้ในระยะไม่เกิน 5 เมตร (ประมาณ 3 - 4.5 เมตร)
+    function placeTargetsNear(lat, lon) {
+      // 0.000009 องศา ละติจูด ≈ 1 เมตร
+      // จุด A: ห่างไปทางเหนือ ~3 เมตร
+      const latA = lat + 0.000027;
+      const lonA = lon;
 
-      let nearestTarget = null;
-      let minDistance = Infinity;
-      let inRangeFound = null;
+      // จุด B: ห่างไปทางตะวันออกเฉียงเหนือ ~4.5 เมตร
+      const latB = lat + 0.000028;
+      const lonB = lon + 0.000028;
 
-      TARGETS.forEach(target => {
-        const dist = getDistanceMeters(me.latitude, me.longitude, target.lat, target.lon);
-        target.distance = dist;
+      // จุด C: ห่างไปทางตะวันออก ~4 เมตร
+      const latC = lat;
+      const lonC = lon + 0.000036;
 
-        if (!target.caught && dist < minDistance) {
-          minDistance = dist;
-          nearestTarget = target;
-        }
+      places[0].setAttribute('gps-new-entity-place', { latitude: latA, longitude: lonA });
+      places[1].setAttribute('gps-new-entity-place', { latitude: latB, longitude: lonB });
+      places[2].setAttribute('gps-new-entity-place', { latitude: latC, longitude: lonC });
+    }
 
-        // ตรวจสอบว่าอยู่ในระยะจับภาพหรือไม่
-        if (!target.caught && dist <= CATCH_RADIUS_METERS) {
-          inRangeFound = target;
-        }
-      });
-
-      // แจ้งเตือนเมื่อเข้ามาในระยะจับภาพ
-      const banner = document.getElementById('catch-banner');
-      if (inRangeFound) {
-        if (activeInRangeTarget !== inRangeFound) {
-          activeInRangeTarget = inRangeFound;
-          playEncounterSound();
-        }
-        document.getElementById('catch-banner-title').textContent = `พบ ${inRangeFound.name}!`;
-        document.getElementById('catch-banner-sub').textContent = `ห่างเพียง ${Math.round(inRangeFound.distance)} เมตร · แตะเพื่อจับภาพ`;
-        banner.style.display = 'flex';
-      } else {
-        banner.style.display = 'none';
-        activeInRangeTarget = null;
+    btnRecenter.addEventListener('click', () => {
+      if (me) {
+        placeTargetsNear(me.latitude, me.longitude);
+        alert('ปักหมุดทั้ง 3 รูปไว้รอบตัวคุณในระยะไม่เกิน 5 เมตรแล้วครับ');
       }
-
-      // นำทางเข็มทิศ
-      updateCompass(nearestTarget);
-
-      // เรนเดอร์การ์ด Nearby
-      renderNearbyCards();
-    }
-
-    function updateCompass(nearest) {
-      const target = TARGETS.find(t => t.id === selectedTargetId) || nearest;
-      const compassEl = document.getElementById('compass-guide');
-      const arrowEl = document.getElementById('target-arrow');
-      const textEl = document.getElementById('compass-text');
-
-      if (!target || !me) {
-        compassEl.style.display = 'none';
-        return;
-      }
-      compassEl.style.display = 'flex';
-
-      const bearing = getBearing(me.latitude, me.longitude, target.lat, target.lon);
-      const relativeAngle = (bearing - compassHeading + 360) % 360;
-      arrowEl.style.transform = `rotate(${relativeAngle}deg)`;
-
-      const d = target.distance !== null ? Math.round(target.distance) : '…';
-      const statusText = target.caught ? '✅ เก็บแล้ว' : (d <= CATCH_RADIUS_METERS ? '⚡ อยู่ตรงนี้แล้ว!' : `อีก ${d} ม.`);
-      textEl.textContent = `${target.name.split('·')[0].trim()}: ${statusText}`;
-    }
-
-    // ----------------------------------------------------
-    // เรนเดอร์การ์ด Pokémon GO Nearby Radar
-    // ----------------------------------------------------
-    function renderNearbyCards() {
-      const container = document.getElementById('targets-grid');
-      container.innerHTML = '';
-
-      TARGETS.forEach(target => {
-        const card = document.createElement('div');
-        card.className = `target-card ${selectedTargetId === target.id ? 'selected' : ''}`;
-        
-        const d = target.distance !== null ? Math.round(target.distance) : null;
-        let badgeClass = 'badge-far';
-        let badgeText = 'ค้นหา';
-
-        if (target.caught) {
-          card.classList.add('caught');
-          badgeClass = 'badge-done';
-          badgeText = 'สะสมแล้ว';
-        } else if (d !== null) {
-          if (d <= CATCH_RADIUS_METERS) {
-            card.classList.add('in-range');
-            badgeClass = 'badge-ready';
-            badgeText = '⚡ จับได้!';
-          } else if (d <= 25) {
-            badgeClass = 'badge-near';
-            badgeText = 'ใกล้มาก';
-          } else {
-            badgeClass = 'badge-far';
-            badgeText = 'กำลังค้นหา';
-          }
-        }
-
-        const distanceDisplay = d !== null ? `${d} ม.` : '…';
-
-        card.innerHTML = `
-          <div class="target-thumb-wrap">
-            <img class="target-thumb ${target.caught ? '' : (d && d <= 25 ? '' : 'silhouette')}" 
-                 src="${target.img}" alt="${target.name}">
-            ${target.caught ? '<div class="badge-caught">✓</div>' : ''}
-          </div>
-          <div class="target-name">${target.name.split('·')[0].trim()}</div>
-          <div class="target-distance">${target.caught ? 'สมบูรณ์' : distanceDisplay}</div>
-          <div class="target-status-badge ${badgeClass}">${badgeText}</div>
-        `;
-
-        card.onclick = () => {
-          selectedTargetId = target.id;
-          if (target.distance !== null && target.distance <= CATCH_RADIUS_METERS && !target.caught) {
-            openCatchModal(target);
-          }
-          renderNearbyCards();
-        };
-
-        container.appendChild(card);
-      });
-
-      // อัปเดตตัวเลขนับ 0/3
-      const caughtCount = TARGETS.filter(t => t.caught).length;
-      document.getElementById('counter-text').textContent = `${caughtCount} / ${TARGETS.length}`;
-    }
-
-    // ----------------------------------------------------
-    // ระบบการจับภาพ (Encounter & Catch)
-    // ----------------------------------------------------
-    function openCatchModal(target) {
-      initAudio();
-      playEncounterSound();
-      document.getElementById('modal-catch-img').src = target.img;
-      document.getElementById('modal-catch-name').textContent = target.name;
-      document.getElementById('modal-catch-desc').textContent = target.desc;
-      
-      const catchBtn = document.getElementById('btn-confirm-catch');
-      catchBtn.onclick = () => {
-        executeCatch(target);
-      };
-
-      document.getElementById('modal-catch').style.display = 'flex';
-    }
-
-    function executeCatch(target) {
-      target.caught = true;
-      playCatchSound();
-
-      // ซ่อนโมดอลจับ
-      closeModal('modal-catch');
-      renderNearbyCards();
-
-      // ตรวจสอบว่าเก็บครบ 3 ภาพหรือยัง
-      const remaining = TARGETS.filter(t => !t.caught).length;
-      if (remaining === 0) {
-        setTimeout(() => {
-          triggerVictory();
-        }, 600);
-      }
-    }
-
-    function triggerVictory() {
-      playVictoryFanfare();
-      startConfetti();
-      document.getElementById('modal-victory').style.display = 'flex';
-    }
-
-    function resetGame() {
-      TARGETS.forEach(t => t.caught = false);
-      closeModal('modal-victory');
-      renderNearbyCards();
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).style.display = 'none';
-    }
-
-    // ----------------------------------------------------
-    // ฟังก์ชันวางจุด 3 จุดรอบตำแหน่งจริง (Spawn Nearby)
-    // ----------------------------------------------------
-    function spawnTargetsAroundPlayer() {
-      if (!me) {
-        alert('กรุณารอรับพิกัด GPS ของคุณก่อน แล้วกดปุ่มนี้อีกครั้งครับ');
-        return;
-      }
-
-      initAudio();
-      playTone(600, 0.15, 'sine');
-
-      // วาง 3 จุดรอบตัวผู้ใช้ในรัศมีประมาณ 12 - 16 เมตร (ทิศ 0°, 120°, 240°)
-      const configs = [
-        { bearing: 0, distance: 12 },   // เหนือ 12 เมตร
-        { bearing: 120, distance: 15 }, // ตะวันออกเฉียงใต้ 15 เมตร
-        { bearing: 240, distance: 15 }  // ตะวันตกเฉียงใต้ 15 เมตร
-      ];
-
-      TARGETS.forEach((target, index) => {
-        const offset = computeOffsetCoordinate(me.latitude, me.longitude, configs[index].distance, configs[index].bearing);
-        target.lat = offset.lat;
-        target.lon = offset.lon;
-        target.caught = false;
-
-        // อัปเดตไปยัง A-Frame Entity ในฉาก AR
-        const entity = document.getElementById(target.elementId);
-        if (entity) {
-          entity.setAttribute('gps-new-entity-place', {
-            latitude: offset.lat,
-            longitude: offset.lon
-          });
-        }
-      });
-
-      alert('📍 สำเร็จ! ระบบได้วางภาพปริศนาทั้ง 3 จุดไว้รอบตัวคุณในระยะ 12-15 เมตรเรียบร้อยแล้ว เดินค้นหาได้เลย!');
-      updateGameLoop();
-    }
-
-    // ----------------------------------------------------
-    // จัดการโมดอลสมุดสะสมภาพ (Pokédex)
-    // ----------------------------------------------------
-    function openPokedex() {
-      initAudio();
-      const listEl = document.getElementById('pokedex-list');
-      listEl.innerHTML = '';
-
-      TARGETS.forEach(target => {
-        const row = document.createElement('div');
-        row.style.cssText = 'background: rgba(255,255,255,0.06); border-radius: 14px; padding: 12px; display: flex; gap: 12px; align-items: center; border: 1px solid rgba(255,255,255,0.1);';
-        
-        row.innerHTML = `
-          <img src="${target.img}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; ${target.caught ? '' : 'filter: brightness(0) invert(1) opacity(0.2);'}">
-          <div style="flex: 1; text-align: left;">
-            <div style="font-weight: 800; font-size: 14px; color: ${target.caught ? '#ffcb05' : '#94a3b8'};">
-              ${target.name} ${target.caught ? '✅' : '🔒'}
-            </div>
-            <div style="font-size: 12px; color: #cbd5e1; margin-top: 4px;">
-              ${target.caught ? target.desc : 'ยังไม่ถูกค้นพบ เดินเข้าใกล้ในระยะ 10 เมตรเพื่อจับภาพ'}
-            </div>
-          </div>
-        `;
-        listEl.appendChild(row);
-      });
-
-      document.getElementById('modal-pokedex').style.display = 'flex';
-    }
-
-    // ----------------------------------------------------
-    // แตะที่วัตถุ 3D ในกล้อง AR ได้โดยตรง
-    // ----------------------------------------------------
-    document.addEventListener('DOMContentLoaded', () => {
-      TARGETS.forEach(target => {
-        const entity = document.getElementById(target.elementId);
-        if (entity) {
-          entity.addEventListener('click', () => {
-            if (!target.caught) {
-              openCatchModal(target);
-            }
-          });
-        }
-      });
-
-      // ปุ่มควบคุมต่างๆ
-      document.getElementById('btn-spawn-nearby').onclick = spawnTargetsAroundPlayer;
-      document.getElementById('btn-open-catch').onclick = () => {
-        if (activeInRangeTarget) openCatchModal(activeInRangeTarget);
-      };
-      document.getElementById('btn-pokedex').onclick = openPokedex;
-      document.getElementById('btn-info').onclick = () => {
-        document.getElementById('modal-info').style.display = 'flex';
-      };
-      
-      const soundBtn = document.getElementById('btn-sound');
-      soundBtn.onclick = () => {
-        soundEnabled = !soundEnabled;
-        soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
-      };
-
-      // เซ็ตอัปโหมดจำลอง (?sim) สำหรับทดสอบบนคอมพิวเตอร์
-      if (SIM) {
-        setupSimulationMode();
-      } else {
-        setupRealGeolocation();
-      }
-
-      // ดักจับทิศทางมือถือ (เข็มทิศ)
-      window.addEventListener('deviceorientationabsolute', e => {
-        if (e.alpha !== null) compassHeading = 360 - e.alpha;
-      }, true);
-      window.addEventListener('deviceorientation', e => {
-        if (e.webkitCompassHeading) compassHeading = e.webkitCompassHeading;
-      }, true);
-
-      renderNearbyCards();
     });
 
-    // ----------------------------------------------------
-    // โหมดรับสัญญาณ GPS จริงบนมือถือ
-    // ----------------------------------------------------
-    function setupRealGeolocation() {
-      const gpsLabel = document.getElementById('gps-status-text');
+    scene.addEventListener('loaded', () => {
+      if (SIM) {
+        const a = places[0].getAttribute('gps-new-entity-place');
+        // จำลองให้ยืนห่างจุด A ประมาณ 3.8 เมตร (ไม่เกิน 5 เมตร)
+        setTimeout(() => cam.setAttribute('gps-new-camera', {
+          simulateLatitude: a.latitude - 0.000035, simulateLongitude: a.longitude
+        }), 500);
+      }
+    });
 
+    cam.addEventListener('gps-camera-update-position', e => {
+      me = e.detail.position;
+      gpsStatus = SIM ? 'โหมดจำลอง' : 'รับตำแหน่ง GPS แล้ว';
+    });
+
+    // อ่านความแม่นยำของ GPS
+    if (!SIM) {
       if (!window.isSecureContext) {
-        gpsLabel.innerHTML = '⚠️ <span style="color:#f87171;">ต้องเปิดผ่าน HTTPS (GitHub Pages) เพื่อใช้ GPS/กล้อง</span>';
-        return;
-      }
-      if (!navigator.geolocation) {
-        gpsLabel.textContent = 'เบราว์เซอร์ไม่รองรับ GPS กรุณาเปิดด้วย Chrome หรือ Safari';
-        return;
-      }
+        gpsStatus = 'GPS ใช้ไม่ได้: เปิดหน้านี้ผ่าน HTTPS (เช่น GitHub Pages) ไม่ใช่ HTTP';
+      } else if (!navigator.geolocation) {
+        gpsStatus = 'เบราว์เซอร์นี้ไม่รองรับ GPS กรุณาเปิดด้วย Chrome หรือ Safari';
+      } else {
+        navigator.geolocation.watchPosition(p => {
+          me = { latitude: p.coords.latitude, longitude: p.coords.longitude };
+          accuracy = p.coords.accuracy;
+          gpsStatus = 'รับตำแหน่ง GPS แล้ว';
+          btnRecenter.style.display = 'inline-block';
 
-      gpsLabel.textContent = 'กำลังขอสิทธิ์ GPS (กดยินยอม Allow)...';
-
-      navigator.geolocation.watchPosition(
-        position => {
-          me = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          };
-          accuracy = position.coords.accuracy;
-          gpsLabel.innerHTML = `🛰️ GPS: <b>±${Math.round(accuracy)} ม.</b> (${me.latitude.toFixed(5)}, ${me.longitude.toFixed(5)})`;
-          updateGameLoop();
-        },
-        error => {
-          const errs = {
-            1: 'ไม่ได้รับอนุญาต Location: กรุณาอนุญาตสิทธิ์ตำแหน่งในการตั้งค่าเว็บ',
-            2: 'หาตำแหน่งไม่พบ: กรุณาเปิด Location และออกไปในที่โล่ง',
-            3: 'ค้นหาพิกัดนานเกินไป: ลองใหม่อีกครั้ง'
-          };
-          gpsLabel.textContent = errs[error.code] || 'ไม่สามารถอ่านพิกัด GPS ได้';
-        },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
-      );
-    }
-
-    // ----------------------------------------------------
-    // โหมดจำลองเดินบนคอมพิวเตอร์ (?sim)
-    // ----------------------------------------------------
-    function setupSimulationMode() {
-      document.getElementById('sim-pad').style.display = 'flex';
-      const gpsLabel = document.getElementById('gps-status-text');
-      gpsLabel.innerHTML = '🎮 <b>โหมดจำลอง (Sim)</b>: กดปุ่มลูกศรเพื่อเดิน';
-
-      // จำลองให้ยืนห่างจากจุด A ไปทางใต้ประมาณ 25 เมตร
-      me = {
-        latitude: TARGETS[0].lat - 0.00022,
-        longitude: TARGETS[0].lon
-      };
-
-      const step = 0.00004; // ขยับประมาณ 4 เมตรต่อครั้ง
-      const move = (dLat, dLon) => {
-        initAudio();
-        playTone(300, 0.05, 'sine');
-        me.latitude += dLat;
-        me.longitude += dLon;
-        updateGameLoop();
-      };
-
-      document.getElementById('sim-up').onclick = () => move(step, 0);
-      document.getElementById('sim-down').onclick = () => move(-step, 0);
-      document.getElementById('sim-left').onclick = () => move(0, -step);
-      document.getElementById('sim-right').onclick = () => move(0, step);
-
-      // รองรับปุ่มลูกศรบนคีย์บอร์ด
-      window.addEventListener('keydown', e => {
-        if (e.key === 'ArrowUp' || e.key === 'w') move(step, 0);
-        if (e.key === 'ArrowDown' || e.key === 's') move(-step, 0);
-        if (e.key === 'ArrowLeft' || e.key === 'a') move(0, -step);
-        if (e.key === 'ArrowRight' || e.key === 'd') move(0, step);
-      });
-
-      updateGameLoop();
-    }
-
-    // ----------------------------------------------------
-    // เอฟเฟกต์พลุฉลอง (Pure JS Confetti)
-    // ----------------------------------------------------
-    function startConfetti() {
-      const canvas = document.getElementById('confetti-canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const particles = [];
-      const colors = ['#ee1515', '#ffcb05', '#2a75bb', '#10b981', '#ec4899', '#ffffff'];
-
-      for (let i = 0; i < 90; i++) {
-        particles.push({
-          x: canvas.width / 2,
-          y: canvas.height / 2,
-          vx: (Math.random() - 0.5) * 14,
-          vy: (Math.random() - 0.8) * 16,
-          size: Math.random() * 8 + 4,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          rotation: Math.random() * 360,
-          vRot: (Math.random() - 0.5) * 10,
-          alpha: 1
-        });
-      }
-
-      let frame = 0;
-      function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vy += 0.35; // gravity
-          p.rotation += p.vRot;
-          p.alpha -= 0.008;
-
-          if (p.alpha > 0) {
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.rotation * Math.PI / 180);
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = Math.max(0, p.alpha);
-            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-            ctx.restore();
+          // เมื่อต่อ GPS ได้ครั้งแรก วางตำแหน่งทั้ง 3 รูปให้อยู่รอบตัวผู้ใช้ในระยะไม่เกิน 5 เมตรทันที
+          if (!autoAnchored) {
+            placeTargetsNear(me.latitude, me.longitude);
+            autoAnchored = true;
           }
-        });
-
-        frame++;
-        if (frame < 140) {
-          requestAnimationFrame(animate);
-        } else {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
+        }, error => {
+          const messages = {
+            1: 'ไม่ได้รับอนุญาตใช้ตำแหน่ง: อนุญาต Location ให้เว็บไซต์นี้ในการตั้งค่าเบราว์เซอร์',
+            2: 'หาตำแหน่งไม่พบ: เปิด Location ของมือถือ แล้วออกไปที่โล่ง',
+            3: 'ขอตำแหน่งนานเกินไป: ตรวจสอบ Location/สัญญาณ แล้วลองใหม่กลางแจ้ง'
+          };
+          gpsStatus = messages[error.code] || 'อ่านตำแหน่งไม่ได้: ตรวจสอบสิทธิ์ Location แล้วลองใหม่';
+        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
       }
-      animate();
     }
 
-    // อัปเดตข้อมูลทุกๆ 1 วินาทีเพื่อความแม่นยำ
-    setInterval(updateGameLoop, 1000);
+    setInterval(() => {
+      if (!me) {
+        hudText.textContent = gpsStatus;
+        return;
+      }
+      const acc = SIM ? 'โหมดจำลอง' : (accuracy ? '± ' + Math.round(accuracy) + ' ม.' : '…');
+      const rows = places.map(p => {
+        let d = p.components['gps-new-entity-place'] ? p.components['gps-new-entity-place'].distance : undefined;
+        // คำนวณระยะทางสำรองหาก AR.js ยังไม่คำนวณ
+        if ((d === undefined || isNaN(d)) && me) {
+          const pos = p.getAttribute('gps-new-entity-place');
+          if (pos) {
+            d = calculateDistance(me.latitude, me.longitude, parseFloat(pos.latitude), parseFloat(pos.longitude));
+          }
+        }
+        return `${p.dataset.name}: <b>${d === undefined ? '…' : Math.round(d) + ' ม.'}</b>`;
+      }).join(' · ');
+
+      hudText.innerHTML = `${gpsStatus}<br>ฉันอยู่ที่ ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b><br>${rows}`;
+    }, 1000);
   </script>
 </body>
 </html>
