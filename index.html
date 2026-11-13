@@ -27,43 +27,15 @@
   </script>
 
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: transparent !important;
-    }
-
-    /* ซ่อนหน้าจอฟ้า 3 จุด (A-Frame Loading Screen) อย่างเด็ดขาด */
+    /* ปิดหน้าจอฟ้า 3 จุดของ A-Frame */
     .a-loader-title, .a-loading-screen, .a-fullscreen .a-loader-title {
       display: none !important;
-      opacity: 0 !important;
-      visibility: hidden !important;
     }
 
-    /* บังคับให้ video จากกล้องแสดงผลเต็มจอ อยู่ใต้ canvas */
-    video#arjs-video, body > video {
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: cover !important;
-      z-index: -2 !important;
-      display: block !important;
-    }
-
-    /* บังคับให้ Canvas ของ A-Frame โปร่งใส เพื่อให้มองทะลุเห็นภาพกล้องจริง */
-    .a-canvas {
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      background: transparent !important;
-      z-index: 1 !important;
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
     }
 
     #hud {
@@ -97,63 +69,48 @@
       background: #7c3aed;
     }
 
-    /* แถบแจ้งเตือนเมื่อต้องการแตะหน้าจอ */
-    #tap-overlay {
+    /* ป้ายแจ้งเตือนให้แตะหน้าจอ 1 ครั้งเพื่อเริ่มกล้อง */
+    #tap-msg {
       position: fixed;
-      bottom: 20px;
+      bottom: 24px;
       left: 20px;
       right: 20px;
-      background: rgba(0, 0, 0, 0.75);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.82);
+      color: #ffcb05;
+      border: 1px solid rgba(255, 203, 5, 0.5);
       border-radius: 12px;
-      padding: 10px;
+      padding: 12px;
       text-align: center;
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: bold;
       z-index: 999;
-      display: none;
     }
   </style>
 </head>
 <body>
   <div id="hud">
-    <div id="hud-text">กำลังเชื่อมต่อกล้องและ GPS…</div>
+    <div id="hud-text">กำลังเชื่อมต่อกล้องและตำแหน่ง GPS…</div>
     <button class="hud-btn" id="btn-recenter" style="display:none;">📍 ปักหมุด 3 รูปให้อยู่รอบตัวฉัน (ระยะไม่เกิน 5 ม.)</button>
   </div>
 
-  <div id="tap-overlay">
-    👆 แตะหน้าจอ 1 ครั้ง เพื่อเริ่มแสดงภาพจากกล้อง
+  <div id="tap-msg">
+    👆 แตะหน้าจอ 1 ครั้งเพื่อเปิดภาพจากกล้อง
   </div>
 
-  <!-- A-Frame Scene -->
+  <!-- A-Frame Scene (ใช้ videoTexture: true ซึ่งเป็นค่ามาตรฐานของ AR.js สำหรับดึงภาพกล้องจริงมาแสดงในฉาก 3D) -->
   <a-scene loading-screen="enabled: false"
            vr-mode-ui="enabled: false"
-           arjs="sourceType: webcam; debugUIEnabled: false"
+           arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
            renderer="antialias: true; alpha: true">
 
-    <a-assets timeout="5000">
+    <a-assets timeout="10000">
       <img id="screenshot-a" src="assets/point-a.png">
       <img id="screenshot-b" src="assets/point-b.png">
       <img id="screenshot-c" src="assets/point-c.png">
     </a-assets>
 
-    <!-- กล้องที่รู้ตำแหน่ง GPS ของผู้ใช้ · ขยับทุก 1 เมตรให้อัปเดตตำแหน่ง -->
+    <!-- กล้องที่รับตำแหน่ง GPS ของผู้ใช้ -->
     <a-camera gps-new-camera="gpsMinDistance: 1"></a-camera>
-
-    <!-- ① จุด A: ภาพหน้าจอ Minecraft · ห่างประมาณ 3 เมตร -->
-    <a-entity data-name="จุด A" gps-new-entity-place="latitude: 7.808689; longitude: 99.941463">
-      <a-image face-me src="#screenshot-a" width="2" height="1.13" position="0 1.5 0"></a-image>
-    </a-entity>
-
-    <!-- ② จุด B: ภาพหน้าจอ Stardew Valley · ห่างประมาณ 4-5 เมตร -->
-    <a-entity data-name="จุด B" gps-new-entity-place="latitude: 7.808725; longitude: 99.941463">
-      <a-image face-me src="#screenshot-b" width="2" height="1.07" position="0 1.5 0"></a-image>
-    </a-entity>
-
-    <!-- ③ จุด C: ภาพหน้าจอ Don't Starve · ห่างประมาณ 4 เมตร -->
-    <a-entity data-name="จุด C" gps-new-entity-place="latitude: 7.808689; longitude: 99.941499">
-      <a-image face-me src="#screenshot-c" width="1.5" height="1.5" position="0 1.5 0"></a-image>
-    </a-entity>
 
   </a-scene>
 
@@ -161,63 +118,37 @@
     const SIM = new URLSearchParams(location.search).has('sim');
     const hudText = document.getElementById('hud-text');
     const btnRecenter = document.getElementById('btn-recenter');
-    const tapOverlay = document.getElementById('tap-overlay');
+    const tapMsg = document.getElementById('tap-msg');
     const scene = document.querySelector('a-scene');
     const cam = document.querySelector('[gps-new-camera]');
-    const places = [...document.querySelectorAll('[gps-new-entity-place]')];
     let me = null, accuracy = null;
-    let gpsStatus = 'กำลังขอตำแหน่ง GPS…';
+    let gpsStatus = 'กำลังขอตำแหน่ง GPS… (กรุณากดอนุญาต)';
     let autoAnchored = false;
 
     // --------------------------------------------------------
-    // ระบบเปิดกล้องสำหรับมือถือ (แก้ปัญหา Samsung & Android Autoplay)
+    // ปลดล็อกการเล่นวิดีโอจากกล้องบนมือถือ (Autoplay Policy)
     // --------------------------------------------------------
-    function ensureCameraStream() {
+    function unlockCameraVideo() {
       const v = document.querySelector('video') || document.getElementById('arjs-video');
       if (v) {
         v.muted = true;
         v.setAttribute('playsinline', '');
         v.setAttribute('webkit-playsinline', '');
-        if (v.paused) {
-          v.play().then(() => {
-            tapOverlay.style.display = 'none';
-          }).catch(() => {
-            tapOverlay.style.display = 'block';
-          });
-        } else if (v.videoWidth > 0) {
-          tapOverlay.style.display = 'none';
-        }
-      }
-
-      // ตรวจสอบ fallback สำหรับมือถือหลายเลนส์ (Samsung multi-camera)
-      if (!v || !v.srcObject || v.videoWidth === 0) {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: {
-              facingMode: { ideal: 'environment' },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            }
-          }).then(stream => {
-            let vid = document.querySelector('video') || document.getElementById('arjs-video');
-            if (vid) {
-              vid.srcObject = stream;
-              vid.muted = true;
-              vid.play();
-              tapOverlay.style.display = 'none';
-            }
-          }).catch(err => {
-            console.warn('Fallback camera note:', err);
-          });
-        }
+        v.play().then(() => {
+          if (tapMsg) tapMsg.style.display = 'none';
+        }).catch(() => {});
       }
     }
+    window.addEventListener('click', unlockCameraVideo);
+    window.addEventListener('touchstart', unlockCameraVideo);
 
-    // สั่งเปิดกล้องทันที และเมื่อผู้ใช้สัมผัสหน้าจอ
-    ensureCameraStream();
-    window.addEventListener('click', ensureCameraStream);
-    window.addEventListener('touchstart', ensureCameraStream);
+    // ตรวจสอบภาพวิดีโอ ถ้าภาพมาแล้วให้ซ่อนป้ายแจ้งเตือน
+    setInterval(() => {
+      const v = document.querySelector('video') || document.getElementById('arjs-video');
+      if (v && v.videoWidth > 0 && !v.paused) {
+        if (tapMsg) tapMsg.style.display = 'none';
+      }
+    }, 800);
 
     // --------------------------------------------------------
     // คำนวณระยะทาง Haversine Formula (เมตร)
@@ -232,35 +163,82 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // วางทั้ง 3 รูปให้อยู่รอบตำแหน่งผู้ใช้ในระยะไม่เกิน 5 เมตร
-    function placeTargetsNear(lat, lon) {
-      const latA = lat + 0.000027; // จุด A: เหนือ ~3 ม.
-      const lonA = lon;
+    // --------------------------------------------------------
+    // สร้างและวางภาพทั้ง 3 รูปในระยะไม่เกิน 5 เมตร (3 - 4.5 เมตร)
+    // โดยสร้าง Entity สดใหม่เพื่อให้ AR.js คำนวณตำแหน่ง 3D ได้ทันที
+    // --------------------------------------------------------
+    function spawnTargetsAt(userLat, userLon) {
+      // ลบรูปภาพเดิมออกก่อน (ถ้ามี)
+      document.querySelectorAll('.target-entity').forEach(el => el.remove());
 
-      const latB = lat + 0.000028; // จุด B: ตะวันออกเฉียงเหนือ ~4.5 ม.
-      const lonB = lon + 0.000028;
+      // 1 เมตร ≈ 0.000009 องศา
+      // จุด A: ห่างไปทางเหนือ ~3 เมตร
+      // จุด B: ห่างไปทางตะวันออกเฉียงเหนือ ~4.5 เมตร
+      // จุด C: ห่างไปทางตะวันออก ~4 เมตร
+      const configs = [
+        {
+          name: 'จุด A',
+          img: '#screenshot-a',
+          lat: userLat + 0.000027,
+          lon: userLon,
+          w: 2.2, h: 1.24
+        },
+        {
+          name: 'จุด B',
+          img: '#screenshot-b',
+          lat: userLat + 0.000028,
+          lon: userLon + 0.000028,
+          w: 2.2, h: 1.17
+        },
+        {
+          name: 'จุด C',
+          img: '#screenshot-c',
+          lat: userLat,
+          lon: userLon + 0.000036,
+          w: 1.8, h: 1.8
+        }
+      ];
 
-      const latC = lat;            // จุด C: ตะวันออก ~4 ม.
-      const lonC = lon + 0.000036;
+      configs.forEach(cfg => {
+        const entity = document.createElement('a-entity');
+        entity.className = 'target-entity';
+        entity.dataset.name = cfg.name;
+        entity.setAttribute('gps-new-entity-place', `latitude: ${cfg.lat}; longitude: ${cfg.lon}`);
 
-      places[0].setAttribute('gps-new-entity-place', { latitude: latA, longitude: lonA });
-      places[1].setAttribute('gps-new-entity-place', { latitude: latB, longitude: lonB });
-      places[2].setAttribute('gps-new-entity-place', { latitude: latC, longitude: lonC });
+        const image = document.createElement('a-image');
+        image.setAttribute('face-me', '');
+        image.setAttribute('src', cfg.img);
+        image.setAttribute('width', cfg.w);
+        image.setAttribute('height', cfg.h);
+        image.setAttribute('position', '0 1.5 0'); // วางที่ระดับสายตา (สูง 1.5 เมตร)
+
+        entity.appendChild(image);
+        scene.appendChild(entity);
+      });
     }
 
     btnRecenter.addEventListener('click', () => {
       if (me) {
-        placeTargetsNear(me.latitude, me.longitude);
+        spawnTargetsAt(me.latitude, me.longitude);
         alert('ปักหมุดทั้ง 3 รูปไว้รอบตัวคุณในระยะไม่เกิน 5 เมตรแล้วครับ');
       }
     });
 
+    // --------------------------------------------------------
+    // โหมดจำลอง (?sim) สำหรับทดสอบ
+    // --------------------------------------------------------
     scene.addEventListener('loaded', () => {
       if (SIM) {
-        const a = places[0].getAttribute('gps-new-entity-place');
-        setTimeout(() => cam.setAttribute('gps-new-camera', {
-          simulateLatitude: a.latitude - 0.000035, simulateLongitude: a.longitude
-        }), 500);
+        const baseLat = 7.808689;
+        const baseLon = 99.941463;
+        spawnTargetsAt(baseLat, baseLon);
+
+        setTimeout(() => {
+          cam.setAttribute('gps-new-camera', {
+            simulateLatitude: baseLat - 0.000035, // ยืนห่างไปทางใต้ประมาณ 3.8 เมตร (ไม่เกิน 5 เมตร)
+            simulateLongitude: baseLon
+          });
+        }, 500);
       }
     });
 
@@ -269,7 +247,9 @@
       gpsStatus = SIM ? 'โหมดจำลอง' : 'รับตำแหน่ง GPS แล้ว';
     });
 
-    // อ่านความแม่นยำของ GPS
+    // --------------------------------------------------------
+    // รับตำแหน่ง GPS จริงจากโทรศัพท์มือถือ
+    // --------------------------------------------------------
     if (!SIM) {
       if (!window.isSecureContext) {
         gpsStatus = 'GPS ใช้ไม่ได้: ต้องเปิดผ่าน HTTPS (GitHub Pages)';
@@ -282,13 +262,14 @@
           gpsStatus = 'รับตำแหน่ง GPS แล้ว';
           btnRecenter.style.display = 'inline-block';
 
+          // เมื่อต่อ GPS ได้ครั้งแรก ปักหมุดทั้ง 3 รูปไว้รอบตัวทันทีในระยะไม่เกิน 5 เมตร
           if (!autoAnchored) {
-            placeTargetsNear(me.latitude, me.longitude);
+            spawnTargetsAt(me.latitude, me.longitude);
             autoAnchored = true;
           }
         }, error => {
           const messages = {
-            1: 'ไม่ได้รับอนุญาตใช้ตำแหน่ง: อนุญาต Location ในการตั้งค่า Chrome',
+            1: 'ไม่ได้รับอนุญาตใช้ตำแหน่ง: อนุญาต Location ในการตั้งค่าเบราว์เซอร์',
             2: 'หาตำแหน่งไม่พบ: เปิด Location ของมือถือ แล้วออกไปที่โล่ง',
             3: 'ขอตำแหน่งนานเกินไป: ลองใหม่อีกครั้ง'
           };
@@ -297,13 +278,15 @@
       }
     }
 
+    // อัปเดตข้อมูลบนแถบ HUD ทุก 1 วินาที
     setInterval(() => {
       if (!me) {
         hudText.textContent = gpsStatus;
         return;
       }
       const acc = SIM ? 'โหมดจำลอง' : (accuracy ? '± ' + Math.round(accuracy) + ' ม.' : '…');
-      const rows = places.map(p => {
+      const targetElements = document.querySelectorAll('.target-entity');
+      const rows = Array.from(targetElements).map(p => {
         let d = p.components['gps-new-entity-place'] ? p.components['gps-new-entity-place'].distance : undefined;
         if ((d === undefined || isNaN(d)) && me) {
           const pos = p.getAttribute('gps-new-entity-place');
@@ -314,7 +297,7 @@
         return `${p.dataset.name}: <b>${d === undefined ? '…' : Math.round(d) + ' ม.'}</b>`;
       }).join(' · ');
 
-      hudText.innerHTML = `${gpsStatus}<br>ฉันอยู่ที่ ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b><br>${rows}`;
+      hudText.innerHTML = `${gpsStatus}<br>ฉันอยู่ที่ ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b><br>${rows || 'กำลังปักหมุดภาพรอบตัวคุณ...'}`;
     }, 1000);
   </script>
 </body>
