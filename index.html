@@ -13,32 +13,78 @@
   <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.8/aframe/build/aframe-ar.js"></script>
 
   <script>
-    // ให้ภาพหันหน้าเข้าหาผู้ใช้เสมอ
+    // ให้ภาพหันหน้าเข้าหาผู้ใช้เสมอ (Billboard effect)
     AFRAME.registerComponent('face-me', {
       tick: function () {
         const cam = this.el.sceneEl.camera;
         if (!cam) return;
         const me = new THREE.Vector3(), target = new THREE.Vector3();
-        this.el.object3D.getWorldPosition(me); cam.getWorldPosition(target);
-        target.y = me.y;
+        this.el.object3D.getWorldPosition(me);
+        cam.getWorldPosition(target);
+        target.y = me.y; // หมุนเฉพาะแนวนอน
         this.el.object3D.lookAt(target);
+      }
+    });
+
+    // แก้ปัญหา Canvas ทึบแสง: สั่ง Three.js เคลียร์ฉากเป็นแบบโปร่งใส 100% (Alpha = 0)
+    AFRAME.registerComponent('transparent-canvas', {
+      init: function () {
+        const scene = this.el;
+        const setClear = () => {
+          if (scene.renderer) {
+            scene.renderer.setClearColor(0x000000, 0);
+          }
+        };
+        if (scene.renderer) {
+          setClear();
+        } else {
+          scene.addEventListener('render-start', setClear);
+        }
       }
     });
   </script>
 
   <style>
-    /* ปิดหน้าจอฟ้า 3 จุด ของ A-Frame */
-    .a-loader-title, .a-loading-screen, .a-fullscreen .a-loader-title {
-      display: none !important;
-    }
-
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
-      background-color: #000;
+      background-color: transparent !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
+    /* ปิดหน้าจอฟ้า 3 จุด ของ A-Frame */
+    .a-loader-title, .a-loading-screen, .a-fullscreen .a-loader-title {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    /* จัดเลเยอร์วิดีโอแบบ Native Video Layer: บังคับให้แสดงผลเต็มจอที่เลเยอร์หลังสุด */
+    video#arjs-video, body > video {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      z-index: -1 !important;
+      display: block !important;
+    }
+
+    /* บังคับ Canvas 3D ให้โปร่งใส 100% เพื่อให้มองทะลุเห็นภาพกล้องจริงด้านหลัง */
+    .a-canvas {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: transparent !important;
+      z-index: 1 !important;
+    }
+
+    /* แถบข้อมูลด้านบน (HUD) */
     #hud {
       position: fixed;
       top: 10px;
@@ -56,11 +102,11 @@
     #hud b { color: #C9B8F0; }
 
     .btn-action {
-      background: #10b981;
+      background: #6366f1;
       color: #fff;
       border: none;
       border-radius: 8px;
-      padding: 8px 14px;
+      padding: 7px 14px;
       font-size: 13px;
       font-weight: bold;
       cursor: pointer;
@@ -71,25 +117,6 @@
     .btn-action:active {
       transform: scale(0.96);
     }
-
-    .btn-secondary {
-      background: #6366f1;
-      margin-left: 6px;
-    }
-
-    #camera-banner {
-      position: fixed;
-      bottom: 24px;
-      left: 16px;
-      right: 16px;
-      background: rgba(15, 23, 42, 0.95);
-      border: 2px solid #38bdf8;
-      border-radius: 16px;
-      padding: 14px;
-      text-align: center;
-      z-index: 1000;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-    }
   </style>
 </head>
 <body>
@@ -97,25 +124,15 @@
   <div id="hud">
     <div id="hud-text">กำลังเชื่อมต่อกล้องและ GPS…</div>
     <div>
-      <button class="btn-action btn-secondary" id="btn-recenter" style="display:none;">📍 ปักหมุดรอบตัวฉัน (5 ม.)</button>
+      <button class="btn-action" id="btn-recenter" style="display:none;">📍 ปักหมุดรอบตัวฉัน (5 ม.)</button>
     </div>
   </div>
 
-  <!-- แถบปุ่มเปิดกล้องขนาดใหญ่ด้านล่าง (กรณีเบราว์เซอร์ไม่เปิดอัตโนมัติ) -->
-  <div id="camera-banner">
-    <div style="color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 8px;">
-      📷 หากภาพกล้องยังไม่ขึ้น ให้กดปุ่มด้านล่างนี้ครับ
-    </div>
-    <button class="btn-action" id="btn-force-camera" style="font-size: 15px; padding: 10px 20px; background: #0284c7; width: 100%;">
-      ▶️ แตะเพื่อเปิดกล้อง (Start Camera)
-    </button>
-    <div id="camera-error-msg" style="color: #f87171; font-size: 12px; margin-top: 6px; display: none;"></div>
-  </div>
-
-  <!-- A-Frame Scene -->
-  <a-scene loading-screen="enabled: false"
+  <!-- A-Frame Scene: ตัด videoTexture ออก เพื่อใช้ Native Video Layer ป้องกันบั๊กจอดำบนมือถือ Android -->
+  <a-scene transparent-canvas
+           loading-screen="enabled: false"
            vr-mode-ui="enabled: false"
-           arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
+           arjs="sourceType: webcam; debugUIEnabled: false"
            renderer="antialias: true; alpha: true">
 
     <a-assets timeout="10000">
@@ -127,16 +144,16 @@
     <!-- กล้องรับตำแหน่ง GPS -->
     <a-camera gps-new-camera="gpsMinDistance: 1"></a-camera>
 
-    <!-- จุดเริ่มต้นในฉาก -->
-    <a-entity id="point-a" class="target-entity" data-name="จุด A" gps-new-entity-place="latitude: 7.808689; longitude: 99.941463">
+    <!-- จุดเริ่มต้นในฉาก (อัปเดตให้อยู่รอบตัวผู้ใช้ในระยะ 3-4.5 เมตร ทันทีเมื่อ GPS พร้อม) -->
+    <a-entity id="point-a" class="target-entity" data-name="Minecraft (A)" gps-new-entity-place="latitude: 7.808689; longitude: 99.941463">
       <a-image face-me src="#screenshot-a" width="2.2" height="1.24" position="0 1.5 0"></a-image>
     </a-entity>
 
-    <a-entity id="point-b" class="target-entity" data-name="จุด B" gps-new-entity-place="latitude: 7.808725; longitude: 99.941463">
+    <a-entity id="point-b" class="target-entity" data-name="Stardew (B)" gps-new-entity-place="latitude: 7.808725; longitude: 99.941463">
       <a-image face-me src="#screenshot-b" width="2.2" height="1.17" position="0 1.5 0"></a-image>
     </a-entity>
 
-    <a-entity id="point-c" class="target-entity" data-name="จุด C" gps-new-entity-place="latitude: 7.808689; longitude: 99.941499">
+    <a-entity id="point-c" class="target-entity" data-name="Don't Starve (C)" gps-new-entity-place="latitude: 7.808689; longitude: 99.941499">
       <a-image face-me src="#screenshot-c" width="1.8" height="1.8" position="0 1.5 0"></a-image>
     </a-entity>
 
@@ -146,86 +163,27 @@
     const SIM = new URLSearchParams(location.search).has('sim');
     const hudText = document.getElementById('hud-text');
     const btnRecenter = document.getElementById('btn-recenter');
-    const btnForceCamera = document.getElementById('btn-force-camera');
-    const cameraBanner = document.getElementById('camera-banner');
-    const cameraErrorMsg = document.getElementById('camera-error-msg');
     const scene = document.querySelector('a-scene');
     const cam = document.querySelector('[gps-new-camera]');
     let me = null, accuracy = null;
     let gpsStatus = 'กำลังค้นหาตำแหน่ง GPS… (กรุณากดยินยอม)';
-    let cameraWorking = false;
     let autoAnchored = false;
 
-    // ----------------------------------------------------
-    // ฟังก์ชันสั่งเปิดกล้อง (ทริกเกอร์โดยตรงจากการกดปุ่ม)
-    // ----------------------------------------------------
-    async function requestCameraAccess() {
-      cameraErrorMsg.style.display = 'none';
-      btnForceCamera.textContent = '⏳ กำลังเปิดกล้อง...';
-
-      try {
-        let stream;
-        try {
-          // พยายามเปิดกล้องหลังแบบ ideal
-          stream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: { facingMode: { ideal: 'environment' } }
-          });
-        } catch (e1) {
-          // ถ้าติดปัญหาเรื่อง multi-camera ให้เปิดแบบพื้นฐาน
-          stream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: true
-          });
-        }
-
-        // นำสัญญาณภาพไปใส่ใน <video> ของ AR.js
-        let video = document.querySelector('video') || document.getElementById('arjs-video');
-        if (!video) {
-          video = document.createElement('video');
-          video.id = 'arjs-video';
-          video.setAttribute('autoplay', '');
-          video.setAttribute('muted', '');
-          video.setAttribute('playsinline', '');
-          video.setAttribute('webkit-playsinline', '');
-          document.body.appendChild(video);
-        }
-        video.srcObject = stream;
-        video.muted = true;
-        await video.play();
-
-        cameraWorking = true;
-        cameraBanner.style.display = 'none';
-
-      } catch (err) {
-        console.error('Camera Error:', err);
-        btnForceCamera.textContent = '🔄 กดลองใหม่อีกครั้ง';
-        cameraErrorMsg.style.display = 'block';
-
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          cameraErrorMsg.innerHTML = '⚠️ <b>สิทธิ์กล้องถูกปฏิเสธ:</b><br>1. แตะไอคอน 🔒 ซ้ายมือของชื่อเว็บ<br>2. เปลี่ยน "กล้อง" เป็น "อนุญาต"<br>3. หากยังไม่ได้ ให้ไปที่ การตั้งค่ามือถือ > แอป > Chrome > สิทธิ์ > กล้อง > เลือก "อนุญาต"';
-        } else if (err.name === 'NotReadableError') {
-          cameraErrorMsg.innerHTML = '⚠️ <b>กล้องกำลังถูกแอปอื่นใช้งาน:</b> กรุณาปิดแอปกล้องหรือแอปอื่น แล้วลองใหม่ครับ';
-        } else {
-          cameraErrorMsg.innerHTML = '⚠️ ข้อผิดพลาด: ' + err.name + ' (' + err.message + ')';
-        }
-      }
-    }
-
-    btnForceCamera.addEventListener('click', requestCameraAccess);
-    window.addEventListener('touchstart', () => {
+    // ปลดล็อกการเล่นวิดีโอบนมือถือเมื่อแตะหน้าจอ (เผื่อติด autoplay restrictions โดยไม่เรียก getUserMedia ซ้ำ)
+    const unlockVideo = () => {
       const v = document.querySelector('video');
-      if (v && v.paused) v.play().catch(() => {});
-    }, { once: true });
-
-    // ตรวจสอบสถานะกล้องสม่ำเสมอ ถ้าภาพมาแล้วให้ซ่อนป้ายเปิดกล้อง
-    setInterval(() => {
-      const v = document.querySelector('video') || document.getElementById('arjs-video');
-      if (v && v.videoWidth > 0 && !v.paused) {
-        cameraWorking = true;
-        cameraBanner.style.display = 'none';
+      if (v && v.paused) {
+        v.play().catch(() => {});
       }
-    }, 1000);
+    };
+    window.addEventListener('touchstart', unlockVideo, { once: true });
+    window.addEventListener('click', unlockVideo, { once: true });
+
+    // ดักจับข้อผิดพลาดกรณีไม่ได้รับสิทธิ์กล้อง
+    window.addEventListener('camera-error', (err) => {
+      console.error('AR.js Camera Error:', err);
+      hudText.innerHTML = '⚠️ ไม่สามารถเปิดกล้องได้: กรุณาอนุญาตสิทธิ์กล้องในเบราว์เซอร์ Chrome';
+    });
 
     // ----------------------------------------------------
     // คำนวณระยะทาง Haversine Formula (เมตร)
@@ -241,15 +199,15 @@
     }
 
     // ----------------------------------------------------
-    // วางตำแหน่งภาพทั้ง 3 รูปใหม่อยู่ในระยะ 3 - 4.5 เมตร
+    // วางตำแหน่งภาพทั้ง 3 รูปใหม่อยู่ในระยะ 3 - 4.5 เมตร (ไม่เกิน 5 เมตร) รอบตัวผู้ใช้
     // ----------------------------------------------------
     function spawnTargetsAt(userLat, userLon) {
       document.querySelectorAll('.target-entity').forEach(el => el.remove());
 
       const configs = [
-        { name: 'จุด A', img: '#screenshot-a', lat: userLat + 0.000027, lon: userLon, w: 2.2, h: 1.24 },
-        { name: 'จุด B', img: '#screenshot-b', lat: userLat + 0.000028, lon: userLon + 0.000028, w: 2.2, h: 1.17 },
-        { name: 'จุด C', img: '#screenshot-c', lat: userLat, lon: userLon + 0.000036, w: 1.8, h: 1.8 }
+        { name: 'Minecraft (A)', img: '#screenshot-a', lat: userLat + 0.000027, lon: userLon, w: 2.2, h: 1.24 },
+        { name: 'Stardew (B)', img: '#screenshot-b', lat: userLat + 0.000028, lon: userLon + 0.000028, w: 2.2, h: 1.17 },
+        { name: "Don't Starve (C)", img: '#screenshot-c', lat: userLat, lon: userLon + 0.000036, w: 1.8, h: 1.8 }
       ];
 
       configs.forEach(cfg => {
@@ -321,7 +279,7 @@
           }
         }, error => {
           const messages = {
-            1: 'ไม่ได้รับอนุญาตใช้ตำแหน่ง: อนุญาต Location ในการตั้งค่าเบราว์เซอร์',
+            1: 'ไม่ได้รับอนุญาตใช้ตำแหน่ง: อนุญาต Location ในการตั้งค่า Chrome',
             2: 'หาตำแหน่งไม่พบ: เปิด Location ของมือถือ แล้วออกไปที่โล่ง',
             3: 'ขอตำแหน่งนานเกินไป: ลองใหม่อีกครั้ง'
           };
