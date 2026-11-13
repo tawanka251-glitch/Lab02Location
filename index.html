@@ -124,7 +124,7 @@
   <div id="hud">
     <div id="hud-text">กำลังเชื่อมต่อกล้องและเซนเซอร์…</div>
     <div>
-      <button class="btn-action" id="btn-recenter">📍 ปักหมุดรอบตัวฉัน (5 ม.)</button>
+      <button class="btn-action" id="btn-recenter">📍 ปักหมุดรอบตัวเครื่อง (ระยะ 3-4 ม.)</button>
     </div>
   </div>
 
@@ -135,19 +135,19 @@
            arjs="sourceType: webcam; debugUIEnabled: false"
            renderer="antialias: true; alpha: true">
 
-    <!-- กล้องรับตำแหน่ง GPS -->
-    <a-camera gps-new-camera="gpsMinDistance: 1; positionMinAccuracy: 1000"></a-camera>
+    <!-- กล้องรับตำแหน่ง GPS และเซนเซอร์หมุนตัว -->
+    <a-camera gps-new-camera="gpsMinDistance: 1; positionMinAccuracy: 10000"></a-camera>
 
-    <!-- วางภาพเริ่มต้นตรงหน้าระยะ 3-4 เมตรทันที (การันตีว่าเห็นภาพ 100% แม้ GPS ยังไม่พร้อม) -->
-    <a-entity id="point-a" class="target-entity" data-name="Minecraft (A)" position="-1.6 1.5 -3.5">
+    <!-- วางภาพเริ่มต้นรอบตัวเครื่องในระยะ 3-4 เมตรทันที (การันตีว่าเห็นภาพ 100%) -->
+    <a-entity id="point-a" class="target-entity" data-name="Minecraft (A)" data-dist="4" position="-2 1.5 -3.5">
       <a-image face-me src="assets/point-a.png" width="2.0" height="1.2" material="alphaTest: 0.1"></a-image>
     </a-entity>
 
-    <a-entity id="point-b" class="target-entity" data-name="Stardew (B)" position="0 1.5 -3">
+    <a-entity id="point-b" class="target-entity" data-name="Stardew (B)" data-dist="3" position="0 1.5 -3.0">
       <a-image face-me src="assets/point-b.png" width="2.0" height="1.1" material="alphaTest: 0.1"></a-image>
     </a-entity>
 
-    <a-entity id="point-c" class="target-entity" data-name="Don't Starve (C)" position="1.6 1.5 -3.5">
+    <a-entity id="point-c" class="target-entity" data-name="Don't Starve (C)" data-dist="4" position="2 1.5 -3.5">
       <a-image face-me src="assets/point-c.png" width="1.6" height="1.6" material="alphaTest: 0.1"></a-image>
     </a-entity>
 
@@ -160,7 +160,7 @@
     const scene = document.querySelector('a-scene');
     const cam = document.querySelector('[gps-new-camera]');
     let me = null, accuracy = null;
-    let gpsStatus = 'กำลังค้นหาตำแหน่ง GPS… (รูปภาพแสดงอยู่ตรงหน้าคุณแล้ว)';
+    let gpsStatus = 'โหมดตำแหน่งเครื่อง: ตรึงภาพรอบตัวในระยะ 3-4 ม.';
     let isGpsAnchored = false;
 
     // ปลดล็อกการเล่นวิดีโอบนมือถือเมื่อแตะหน้าจอ 1 ครั้ง
@@ -184,7 +184,37 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // วางตำแหน่งภาพทั้ง 3 รูป ณ พิกัด GPS จริง ในระยะ 3 - 4.5 เมตร รอบตัวผู้ใช้
+    // ฟังก์ชัน 1: ตรึงภาพรอบตัวเครื่อง (ตามตำแหน่งเครื่อง ป้องกันปัญหา GPS ไม่แม่นยำหรือแกว่ง)
+    function anchorToDevice() {
+      document.querySelectorAll('.target-entity').forEach(el => el.remove());
+
+      const configs = [
+        { name: 'Minecraft (A)', img: 'assets/point-a.png', pos: '-2 1.5 -3.5', dist: 4, w: 2.0, h: 1.2 },
+        { name: 'Stardew (B)', img: 'assets/point-b.png', pos: '0 1.5 -3.0', dist: 3, w: 2.0, h: 1.1 },
+        { name: "Don't Starve (C)", img: 'assets/point-c.png', pos: '2 1.5 -3.5', dist: 4, w: 1.6, h: 1.6 }
+      ];
+
+      configs.forEach(cfg => {
+        const entity = document.createElement('a-entity');
+        entity.className = 'target-entity';
+        entity.dataset.name = cfg.name;
+        entity.dataset.dist = cfg.dist;
+        entity.setAttribute('position', cfg.pos);
+
+        const image = document.createElement('a-image');
+        image.setAttribute('face-me', '');
+        image.setAttribute('src', cfg.img);
+        image.setAttribute('width', cfg.w);
+        image.setAttribute('height', cfg.h);
+        image.setAttribute('material', 'alphaTest: 0.1');
+
+        entity.appendChild(image);
+        scene.appendChild(entity);
+      });
+      isGpsAnchored = false;
+    }
+
+    // ฟังก์ชัน 2: ปักหมุดตามพิกัด GPS จริง (ใช้เมื่อ GPS แม่นยำ)
     function anchorTargetsToGps(userLat, userLon) {
       document.querySelectorAll('.target-entity').forEach(el => el.remove());
 
@@ -214,12 +244,15 @@
       isGpsAnchored = true;
     }
 
+    // เมื่อกดปุ่มปักหมุด
     btnRecenter.addEventListener('click', () => {
-      if (me) {
+      // ถ้าตำแหน่ง GPS แม่นยำ (ไม่เกิน 10 เมตร) ให้ปักหมุด GPS ถ้าไม่แม่นยำให้ปักรอบตัวเครื่อง
+      if (me && accuracy && accuracy <= 10) {
         anchorTargetsToGps(me.latitude, me.longitude);
-        alert('ปักหมุดทั้ง 3 รูปไว้รอบตัวคุณในระยะไม่เกิน 5 เมตรแล้วครับ');
+        alert('ปักหมุดตามพิกัด GPS จริงรอบตัวคุณในระยะ 3-4.5 เมตรแล้วครับ');
       } else {
-        alert('กำลังรอสัญญาณ GPS กรุณารอสักครู่ครับ');
+        anchorToDevice();
+        alert('ปักหมุดตามตำแหน่งเครื่องรอบตัวคุณในระยะ 3-4 เมตรแล้วครับ (ไม่หลุดเฟรมแน่นอน)');
       }
     });
 
@@ -241,55 +274,71 @@
 
     cam.addEventListener('gps-camera-update-position', e => {
       me = e.detail.position;
-      gpsStatus = SIM ? 'โหมดจำลอง' : 'รับตำแหน่ง GPS แล้ว';
+      if (SIM) gpsStatus = 'โหมดจำลอง';
     });
 
-    // อ่านพิกัด GPS จริงจากมือถือ
+    // อ่านพิกัดจากเครื่องมือถือ
     if (!SIM) {
       if (!window.isSecureContext) {
         gpsStatus = 'GPS ใช้ไม่ได้: ต้องเปิดผ่าน HTTPS (GitHub Pages)';
       } else if (!navigator.geolocation) {
-        gpsStatus = 'เบราว์เซอร์นี้ไม่รองรับ GPS กรุณาเปิดด้วย Chrome';
+        gpsStatus = 'เบราว์เซอร์นี้ไม่รองรับ GPS → ใช้ตำแหน่งเครื่อง';
       } else {
-        navigator.geolocation.watchPosition(p => {
+        const onLocationUpdate = (p) => {
           me = { latitude: p.coords.latitude, longitude: p.coords.longitude };
           accuracy = p.coords.accuracy;
-          gpsStatus = 'รับตำแหน่ง GPS แล้ว (ปักหมุดรอบตัว 5 ม.)';
 
-          if (!isGpsAnchored) {
-            anchorTargetsToGps(me.latitude, me.longitude);
+          // ถ้าพิกัด GPS แม่นยำสูง (<= 10 เมตร) ใช้ระบบ GPS
+          if (accuracy && accuracy <= 10) {
+            gpsStatus = 'GPS แม่นยำสูง (ปักหมุดตามดาวเทียมรอบตัว 5 ม.)';
+            if (!isGpsAnchored) {
+              anchorTargetsToGps(me.latitude, me.longitude);
+            }
+          } else {
+            // ถ้าพิกัดไม่แม่นยำ (> 10 เมตร หรือแกว่ง) เอาตามตำแหน่งเครื่องรอบตัวทันที
+            gpsStatus = `ตำแหน่งไม่แม่นยำ (±${Math.round(accuracy)} ม.) → ตรึงภาพตามตำแหน่งเครื่อง`;
+            if (isGpsAnchored) {
+              anchorToDevice();
+            }
           }
-        }, error => {
-          const messages = {
-            1: 'ไม่ได้รับสิทธิ์ Location: กรุณาอนุญาตในการตั้งค่า Chrome',
-            2: 'หาตำแหน่งไม่พบ: กรุณาเปิด GPS ของมือถือ',
-            3: 'ขอตำแหน่งนานเกินไป'
-          };
-          gpsStatus = (messages[error.code] || 'อ่านตำแหน่งไม่ได้') + ' (กำลังแสดงภาพแบบคงที่ตรงหน้า)';
-        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+        };
+
+        const onLocationError = (error) => {
+          gpsStatus = 'สัญญาณ GPS อ่อน → ใช้ตำแหน่งเครื่องรอบตัว (3-4 ม.)';
+          anchorToDevice();
+        };
+
+        // ติดตามตำแหน่งอย่างต่อเนื่อง
+        navigator.geolocation.watchPosition(onLocationUpdate, onLocationError, {
+          enableHighAccuracy: true,
+          maximumAge: 3000,
+          timeout: 10000
+        });
       }
     }
 
     // อัปเดตข้อมูลบนแถบ HUD ทุก 1 วินาที
     setInterval(() => {
-      if (!me) {
-        hudText.innerHTML = `${gpsStatus}<br>กำลังเชื่อมต่อสัญญาณภาพ 3 มิติ...`;
-        return;
-      }
-      const acc = SIM ? 'โหมดจำลอง' : (accuracy ? '± ' + Math.round(accuracy) + ' ม.' : '…');
+      const acc = SIM ? 'โหมดจำลอง' : (accuracy ? '± ' + Math.round(accuracy) + ' ม.' : 'กำลังตรวจวัด...');
       const targetElements = document.querySelectorAll('.target-entity');
       const rows = Array.from(targetElements).map(p => {
-        let d = p.components['gps-new-entity-place'] ? p.components['gps-new-entity-place'].distance : undefined;
-        if ((d === undefined || isNaN(d)) && me) {
-          const pos = p.getAttribute('gps-new-entity-place');
-          if (pos) {
-            d = calculateDistance(me.latitude, me.longitude, parseFloat(pos.latitude), parseFloat(pos.longitude));
+        let d = undefined;
+        if (p.components['gps-new-entity-place'] && me) {
+          d = p.components['gps-new-entity-place'].distance;
+          if (d === undefined || isNaN(d)) {
+            const pos = p.getAttribute('gps-new-entity-place');
+            if (pos) {
+              d = calculateDistance(me.latitude, me.longitude, parseFloat(pos.latitude), parseFloat(pos.longitude));
+            }
           }
+        } else if (p.dataset.dist) {
+          d = parseFloat(p.dataset.dist);
         }
         return `${p.dataset.name}: <b>${d === undefined ? '3 ม.' : Math.round(d) + ' ม.'}</b>`;
       }).join(' · ');
 
-      hudText.innerHTML = `${gpsStatus}<br>พิกัด: ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b><br>${rows}`;
+      const posText = me ? `พิกัดเครื่อง: ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b>` : 'ตำแหน่งเครื่อง: กำลังอ่านพิกัด...';
+      hudText.innerHTML = `${gpsStatus}<br>${posText}<br>${rows}`;
     }, 1000);
   </script>
 </body>
