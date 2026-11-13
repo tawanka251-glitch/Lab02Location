@@ -49,11 +49,12 @@
     <button class="hud-btn" id="btn-recenter" style="display:none;">📍 ปักหมุด 3 รูปให้อยู่รอบตัวฉัน (ระยะไม่เกิน 5 ม.)</button>
   </div>
 
-  <a-scene vr-mode-ui="enabled: false"
+  <a-scene loading-screen="enabled: false"
+           vr-mode-ui="enabled: false"
            arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
            renderer="antialias: true; alpha: true">
 
-    <a-assets>
+    <a-assets timeout="10000">
       <img id="screenshot-a" src="assets/point-a.png">
       <img id="screenshot-b" src="assets/point-b.png">
       <img id="screenshot-c" src="assets/point-c.png">
@@ -143,6 +144,24 @@
       }
     });
 
+    let cameraStatus = '';
+
+    // ตรวจสอบและดักจับข้อผิดพลาดของกล้อง
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions.query({ name: 'camera' }).then(res => {
+        if (res.state === 'denied') {
+          cameraStatus = '<br><span style="color:#ff8585;">⚠️ ไม่ได้รับอนุญาตใช้กล้อง: กรุณาอนุญาต Camera ใน Chrome</span>';
+        }
+        res.onchange = () => {
+          cameraStatus = res.state === 'denied' ? '<br><span style="color:#ff8585;">⚠️ ไม่ได้รับอนุญาตใช้กล้อง: กรุณาอนุญาต Camera ใน Chrome</span>' : '';
+        };
+      }).catch(() => {});
+    }
+
+    window.addEventListener('camera-error', () => {
+      cameraStatus = '<br><span style="color:#ff8585;">⚠️ กล้องเปิดไม่ได้: กรุณาอนุญาตสิทธิ์กล้อง (Camera) ใน Chrome แล้วรีเฟรช</span>';
+    });
+
     cam.addEventListener('gps-camera-update-position', e => {
       me = e.detail.position;
       gpsStatus = SIM ? 'โหมดจำลอง' : 'รับตำแหน่ง GPS แล้ว';
@@ -179,7 +198,7 @@
 
     setInterval(() => {
       if (!me) {
-        hudText.textContent = gpsStatus;
+        hudText.innerHTML = `${gpsStatus}${cameraStatus}`;
         return;
       }
       const acc = SIM ? 'โหมดจำลอง' : (accuracy ? '± ' + Math.round(accuracy) + ' ม.' : '…');
@@ -195,7 +214,7 @@
         return `${p.dataset.name}: <b>${d === undefined ? '…' : Math.round(d) + ' ม.'}</b>`;
       }).join(' · ');
 
-      hudText.innerHTML = `${gpsStatus}<br>ฉันอยู่ที่ ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b><br>${rows}`;
+      hudText.innerHTML = `${gpsStatus}${cameraStatus}<br>ฉันอยู่ที่ ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b><br>${rows}`;
     }, 1000);
   </script>
 </body>
