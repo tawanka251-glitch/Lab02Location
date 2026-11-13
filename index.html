@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AR ตามพิกัด · 0214381 Lab 3</title>
+  <!-- ห้ามแก้ 2 บรรทัดนี้: A-Frame 1.6.0 และ AR.js 3.4.8 (ชุดเดียวกับ Lab 1) -->
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.8/aframe/build/aframe-ar.js"></script>
+  <script>
+    // ให้วัตถุหันหน้าเข้าหาผู้ใช้เสมอ (อ่านป้ายได้จากทุกทิศ)
+    AFRAME.registerComponent('face-me', {
+      tick: function () {
+        const cam = this.el.sceneEl.camera;
+        if (!cam) return;
+        const me = new THREE.Vector3(), target = new THREE.Vector3();
+        this.el.object3D.getWorldPosition(me); cam.getWorldPosition(target);
+        target.y = me.y;                       // หมุนเฉพาะแนวนอน ป้ายไม่เอียงขึ้นลง
+        this.el.object3D.lookAt(target);
+      }
+    });
+  </script>
+  <style>
+    #hud { position: fixed; top: 10px; left: 10px; right: 10px; z-index: 10;
+           background: rgba(42,27,92,.82); color: #fff; border-radius: 12px;
+           padding: 10px 12px; font: 14px/1.5 system-ui, sans-serif; }
+    #hud b { color: #C9B8F0; }
+  </style>
+</head>
+<body style="margin: 0; overflow: hidden;">
+  <div id="hud">กำลังขอตำแหน่ง GPS… (อนุญาตกล้องและตำแหน่ง)</div>
+
+  <a-scene vr-mode-ui="enabled: false"
+           arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
+           renderer="antialias: true; alpha: true">
+
+    <!-- กล้องที่รู้ตำแหน่ง GPS ของผู้ใช้ · gpsMinDistance = ขยับเกินกี่เมตรจึงอัปเดตตำแหน่ง -->
+    <a-camera gps-new-camera="gpsMinDistance: 5"></a-camera>
+
+    <!-- หน่วยของขนาดในโหมดนี้คือ "เมตรจริง" วัตถุที่อยู่ห่าง 30 เมตรจึงต้องใหญ่หลายเมตรถึงจะเห็นชัด
+         ค่าเริ่มต้นวางจุดไว้รอบพิกัด 0, 0 เพื่อให้ทดลองโหมดจำลอง (?sim) ได้ทันที -->
+
+    <!-- ① แก้ได้: จุด A · ใส่ latitude และ longitude ของสถานที่จริงที่วัดมา และเปลี่ยน data-name -->
+    <a-entity data-name="จุด A" gps-new-entity-place="latitude: 0.0003; longitude: 0">
+      <a-box color="#5A3EBD" scale="4 4 4" position="0 2 0"
+             animation="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear"></a-box>
+      <a-text face-me value="POINT A" align="center" color="#FFFFFF" width="40" position="0 6 0"></a-text>
+    </a-entity>
+
+    <!-- ② แก้ได้: จุด B · ลองเปลี่ยนสี ขนาด หรือเปลี่ยน a-sphere เป็น a-cylinder -->
+    <a-entity data-name="จุด B" gps-new-entity-place="latitude: 0; longitude: 0.0003">
+      <a-sphere color="#FF78AA" radius="2.5" position="0 2.5 0"></a-sphere>
+      <a-text face-me value="POINT B" align="center" color="#FFFFFF" width="40" position="0 7 0"></a-text>
+    </a-entity>
+
+    <!-- ③ แก้ได้: จุด C · ป้ายข้อความล้วน (ใช้ภาษาอังกฤษ เพราะ a-text แสดงภาษาไทยไม่ได้) -->
+    <a-entity data-name="จุด C" gps-new-entity-place="latitude: -0.0003; longitude: 0">
+      <a-entity face-me position="0 4 0">
+        <a-plane color="#2A1B5C" width="14" height="5"></a-plane>
+        <a-text value="WELCOME C" align="center" color="#FFCE54" width="40" position="0 0 0.1"></a-text>
+      </a-entity>
+    </a-entity>
+
+    <!-- ④ ท้าทาย: คัดลอกบล็อก a-entity ทั้งก้อนมาวางเพิ่มเป็นจุด D ที่ตำแหน่งใหม่ -->
+
+  </a-scene>
+
+  <script>
+    // โหมดจำลอง: เปิดลิงก์แล้วต่อท้ายด้วย ?sim จะ "ยืน" ห่างจุด A ไปทางใต้ประมาณ 33 เมตร (ใช้ในห้องหรือบนคอมพิวเตอร์)
+    const SIM = new URLSearchParams(location.search).has('sim');
+    const hud = document.getElementById('hud');
+    const scene = document.querySelector('a-scene');
+    const cam = document.querySelector('[gps-new-camera]');
+    const places = [...document.querySelectorAll('[gps-new-entity-place]')];
+    let me = null, accuracy = null;
+    let gpsStatus = 'กำลังขอตำแหน่ง GPS… อนุญาตการเข้าถึงตำแหน่งเมื่อเบราว์เซอร์ถาม';
+
+    scene.addEventListener('loaded', () => {
+      if (SIM) {
+        const a = places[0].getAttribute('gps-new-entity-place');
+        setTimeout(() => cam.setAttribute('gps-new-camera', {
+          simulateLatitude: a.latitude - 0.0003, simulateLongitude: a.longitude + 0.000001
+        }), 500);
+      }
+    });
+    cam.addEventListener('gps-camera-update-position', e => {
+      me = e.detail.position;
+      gpsStatus = SIM ? 'โหมดจำลอง' : 'รับตำแหน่ง GPS แล้ว';
+    });
+
+    // อ่านความแม่นยำของ GPS (± เมตร) เพื่อจดลงใบงาน
+    if (!SIM) {
+      if (!window.isSecureContext) {
+        gpsStatus = 'GPS ใช้ไม่ได้: เปิดหน้านี้ผ่าน HTTPS (เช่น GitHub Pages) ไม่ใช่ HTTP';
+      } else if (!navigator.geolocation) {
+        gpsStatus = 'เบราว์เซอร์นี้ไม่รองรับ GPS กรุณาเปิดด้วย Chrome หรือ Safari';
+      } else {
+        navigator.geolocation.watchPosition(p => {
+          me = { latitude: p.coords.latitude, longitude: p.coords.longitude };
+          accuracy = p.coords.accuracy;
+          gpsStatus = 'รับตำแหน่ง GPS แล้ว';
+        }, error => {
+          const messages = {
+            1: 'ไม่ได้รับอนุญาตใช้ตำแหน่ง: อนุญาต Location ให้เว็บไซต์นี้ในการตั้งค่าเบราว์เซอร์',
+            2: 'หาตำแหน่งไม่พบ: เปิด Location ของมือถือ แล้วออกไปที่โล่ง',
+            3: 'ขอตำแหน่งนานเกินไป: ตรวจสอบ Location/สัญญาณ แล้วลองใหม่กลางแจ้ง'
+          };
+          gpsStatus = messages[error.code] || 'อ่านตำแหน่งไม่ได้: ตรวจสอบสิทธิ์ Location แล้วลองใหม่';
+        }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+      }
+    }
+
+    setInterval(() => {
+      if (!me) {
+        hud.textContent = gpsStatus;
+        return;
+      }
+      const acc = SIM ? 'โหมดจำลอง' : (accuracy ? '± ' + Math.round(accuracy) + ' ม.' : '…');
+      const rows = places.map(p => {
+        const d = p.components['gps-new-entity-place'].distance;
+        return `${p.dataset.name}: <b>${d === undefined ? '…' : Math.round(d) + ' ม.'}</b>`;
+      }).join(' · ');
+      hud.innerHTML = `${gpsStatus}<br>ฉันอยู่ที่ ${me.latitude.toFixed(6)}, ${me.longitude.toFixed(6)} · ความแม่นยำ <b>${acc}</b><br>${rows}`;
+    }, 1000);
+  </script>
+</body>
+</html>
